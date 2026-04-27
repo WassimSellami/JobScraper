@@ -26,7 +26,9 @@ def date_age_in_days(text):
     if not isinstance(text, str):
         return float("inf")
 
-    match = re.match(r"vor\s+(\d+)\s+(stunde|stunden|tag|tagen|woche|wochen)", text.strip().lower())
+    match = re.match(
+        r"vor\s+(\d+)\s+(stunde|stunden|tag|tagen|woche|wochen)", text.strip().lower()
+    )
     if not match:
         return float("inf")
 
@@ -78,6 +80,13 @@ result = result[result["job_url"].str.contains("stellenangebote", na=False)]
 result = result.dropna(subset=["position", "job_url", "match", "date"]).reset_index(
     drop=True
 )
+result = result[
+    ~result["position"]
+    .astype(str)
+    .str.contains(
+        r"\b(Senior|Lead|Professor|Projektleiter|Manager)\b", case=False, na=False
+    )
+].reset_index(drop=True)
 result = result[result["match"].astype(str).str.strip() != "Passt weniger"].reset_index(
     drop=True
 )
