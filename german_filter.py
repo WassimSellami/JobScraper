@@ -61,7 +61,6 @@ def fetch_job_text(url: str, timeout: int = 15) -> str:
         "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
     }
     try:
-        log(f"Fetching: {url}")
         r = requests.get(url, headers=headers, timeout=timeout)
         r.raise_for_status()
         parser = TextExtractor()
@@ -99,17 +98,14 @@ def process_input_file(input_csv: str, output_csv: str, label: str):
 
     keep = []
     for row_num, (_, row) in enumerate(df.iterrows(), start=1):
-        print(
-            f"[{row_num}/{len(df)}] {str(row['position'])[:60]}...", end=" ", flush=True
-        )
+        prefix = f"[{row_num}/{len(df)}]"
         text = fetch_job_text(row["job_url"])
         m = GERMAN_REGEX.search(text)
         if m:
-            start = max(0, m.start() - 40)
-            end = min(len(text), m.end() + 40)
-            print(f"❌ skipped — «{text[start:end].strip()[:80]}»")
+            matched_text = m.group(0).strip().replace("\n", " ")
+            print(f"{prefix} ❌ skipped (match: {matched_text})")
         else:
-            print("✅ kept")
+            print(f"{prefix} ✅ kept")
             keep.append(row)
         time.sleep(REQUEST_DELAY)
 
