@@ -1,6 +1,15 @@
 import pandas as pd
 import re
 
+from constants import (
+    DEUTSCH_VALUE,
+    FULL_OUTPUT_FILE,
+    INPUT_FILE,
+    POSITION_EXCLUSION_TERMS,
+    RECENT_OUTPUT_FILE,
+    LAST_DAYS,
+)
+
 
 def fix_encoding(text):
     if not isinstance(text, str):
@@ -45,12 +54,14 @@ def date_age_in_days(text):
     return float("inf")
 
 
-df = pd.read_csv("stepstone.csv")
+df = pd.read_csv(INPUT_FILE)
 
 # Keep only rows where no column contains the exact value 'Deutsch'
 has_deutsch = (
     df.astype(str)
-    .apply(lambda col: col.str.strip().str.fullmatch(r"Deutsch", case=False, na=False))
+    .apply(
+        lambda col: col.str.strip().str.fullmatch(DEUTSCH_VALUE, case=False, na=False)
+    )
     .any(axis=1)
 )
 df = df[~has_deutsch].copy()
@@ -92,7 +103,7 @@ result = result[
     ~result["position"]
     .astype(str)
     .str.contains(
-        r"\b(Senior|Lead|Professor|Projektleiter|Manager|ERP|Defence|Architect)\b",
+        r"\b(" + "|".join(POSITION_EXCLUSION_TERMS) + r")\b",
         case=False,
         na=False,
     )
@@ -112,13 +123,20 @@ result["match"] = pd.Categorical(
     ordered=True,
 )
 result["_date_age_days"] = result["date"].apply(date_age_in_days)
-result = (
-    result.sort_values(["match", "_date_age_days"], kind="stable")
-    .drop(columns=["_date_age_days"])
-    .reset_index(drop=True)
+result = result.sort_values(["match", "_date_age_days"], kind="stable").reset_index(
+    drop=True
 )
 
-result = result[["match", "date", "position", "job_url"]]
+result_last_x_days = result[result["_date_age_days"] <= LAST_DAYS].drop(
+    columns=["_date_age_days"]
+)
 
-result.to_csv("stepstone_cleaned_columns.csv", index=False)
-print(f"Saved {len(result)} jobs to stepstone_cleaned_columns.csv")
+result = result.drop(columns=["_date_age_days"])
+
+result = result[["match", "date", "position", "job_url"]]
+result_last_x_days = result_last_x_days[["match", "date", "position", "job_url"]]
+
+result.to_csv(FULL_OUTPUT_FILE, index=False)
+result_last_x_days.to_csv(RECENT_OUTPUT_FILE, index=False)
+print(f"Saved {len(result)} jobs to {FULL_OUTPUT_FILE}")
+print(f"Saved {len(result_last_x_days)} jobs to {RECENT_OUTPUT_FILE}")
