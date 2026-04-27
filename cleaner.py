@@ -47,6 +47,14 @@ def date_age_in_days(text):
 
 df = pd.read_csv("stepstone.csv")
 
+# Keep only rows where no column contains the exact value 'Deutsch'
+has_deutsch = (
+    df.astype(str)
+    .apply(lambda col: col.str.strip().str.fullmatch(r"Deutsch", case=False, na=False))
+    .any(axis=1)
+)
+df = df[~has_deutsch].copy()
+
 # Auto-detect the 4 columns by their content patterns
 title_col = next(
     c
@@ -84,15 +92,23 @@ result = result[
     ~result["position"]
     .astype(str)
     .str.contains(
-        r"\b(Senior|Lead|Professor|Projektleiter|Manager)\b", case=False, na=False
+        r"\b(Senior|Lead|Professor|Projektleiter|Manager|ERP|Defence|Architect)\b",
+        case=False,
+        na=False,
     )
 ].reset_index(drop=True)
 result = result[result["match"].astype(str).str.strip() != "Passt weniger"].reset_index(
     drop=True
 )
+result["match"] = result["match"].replace(
+    {
+        "Passt hervorragend": "per",
+        "Passt gut": "gut",
+    }
+)
 result["match"] = pd.Categorical(
     result["match"],
-    categories=["Passt hervorragend", "Passt gut"],
+    categories=["per", "gut"],
     ordered=True,
 )
 result["_date_age_days"] = result["date"].apply(date_age_in_days)
@@ -101,6 +117,8 @@ result = (
     .drop(columns=["_date_age_days"])
     .reset_index(drop=True)
 )
+
+result = result[["match", "date", "position", "job_url"]]
 
 result.to_csv("stepstone_cleaned_columns.csv", index=False)
 print(f"Saved {len(result)} jobs to stepstone_cleaned_columns.csv")
