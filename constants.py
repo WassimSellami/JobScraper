@@ -44,4 +44,6 @@ GERMAN_REQUIRED_PATTERNS = [
     r"(arbeitssprache|unternehmenssprache|firmensprache) (ist )?deutsch",
     r"deutsch (ist )?(die )?(arbeitssprache|unternehmenssprache|firmensprache)",
     r"(team|kommunikation|kommunizier).{0,30}auf deutsch",
+    r"(gute|sehr gute).{0,20}deutsch-?\s*und\s*englischkenntnisse.{0,30}(in )?wort und schrift",
+    r"(gute|sehr gute).{0,20}englisch-?\s*und\s*deutschkenntnisse.{0,30}(in )?wort und schrift",
 ]
