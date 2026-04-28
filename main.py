@@ -10,8 +10,10 @@ from constants import (
     GLASSDOOR_RECENT_OUTPUT_FILE,
     LAST_DAYS,
     RECENT_OUTPUT_FILE,
+    PROCESS_GLASSDOOR,
+    PROCESS_STEPSTONE,
 )
-from german_filter import process_input_file, process_input_file_playwright
+from german_filter import process_input_file
 
 
 def run_script(script_name: str):
@@ -25,9 +27,11 @@ def main():
     stepstone_input = os.path.join("input", "stepstone.csv")
     glassdoor_input = os.path.join("input", "glassdoor.csv")
 
-    if os.path.exists(stepstone_input):
+    if PROCESS_STEPSTONE and os.path.exists(stepstone_input):
         run_script("stepstone_cleaner.py")
-        process_input_file(RECENT_OUTPUT_FILE, GERMAN_FILTER_RECENT_OUTPUT_CSV, "stepstone recent")
+        process_input_file(
+            RECENT_OUTPUT_FILE, GERMAN_FILTER_RECENT_OUTPUT_CSV, "stepstone recent"
+        )
         final = f"stepstone_recent_{LAST_DAYS}days_{run_date}.csv"
         os.replace(GERMAN_FILTER_RECENT_OUTPUT_CSV, final)
         print(f"Output: {final}")
@@ -35,14 +39,13 @@ def main():
             if os.path.exists(f):
                 os.remove(f)
 
-    if os.path.exists(glassdoor_input):
+    if PROCESS_GLASSDOOR and os.path.exists(glassdoor_input):
         run_script("glassdoor_cleaner.py")
-        process_input_file_playwright(GLASSDOOR_RECENT_OUTPUT_FILE, GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV, "glassdoor recent")
-        final = f"glassdoor_recent_{LAST_DAYS}days_{run_date}.csv"
-        os.replace(GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV, final)
+        os.replace(
+            GLASSDOOR_RECENT_OUTPUT_FILE, GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV
+        )
+        final = GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV
         print(f"Output: {final}")
-        if os.path.exists(GLASSDOOR_RECENT_OUTPUT_FILE):
-            os.remove(GLASSDOOR_RECENT_OUTPUT_FILE)
 
     print("Pipeline completed.")
 

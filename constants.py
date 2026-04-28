@@ -1,3 +1,7 @@
+PROCESS_GLASSDOOR = True
+PROCESS_STEPSTONE = False
+
+
 INPUT_FILE = "input/stepstone.csv"
 FULL_OUTPUT_FILE = "stepstone_cleaned_full.csv"
 RECENT_OUTPUT_FILE = "stepstone_cleaned_recent.csv"
@@ -13,7 +17,7 @@ GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV = "glassdoor_apply_recent.csv"
 
 GERMAN_FILTER_REQUEST_DELAY = 0.2
 
-LAST_DAYS = 2
+LAST_DAYS = 7
 
 POSITION_EXCLUSION_TERMS = [
     "Senior",
@@ -24,6 +28,8 @@ POSITION_EXCLUSION_TERMS = [
     "ERP",
     "Defence",
     "Architect",
+    "Working Student",
+    "Werkstudent",
 ]
 
 DEUTSCH_VALUE = "Deutsch"
