@@ -5,11 +5,13 @@ from datetime import datetime
 
 from constants import (
     FULL_OUTPUT_FILE,
-    GERMAN_FILTER_FULL_OUTPUT_CSV,
     GERMAN_FILTER_RECENT_OUTPUT_CSV,
+    GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV,
+    GLASSDOOR_RECENT_OUTPUT_FILE,
     LAST_DAYS,
     RECENT_OUTPUT_FILE,
 )
+from german_filter import process_input_file, process_input_file_playwright
 
 
 def run_script(script_name: str):
@@ -17,49 +19,30 @@ def run_script(script_name: str):
     subprocess.run([sys.executable, script_name], check=True)
 
 
-def add_suffix_to_filename(path: str, suffix: str) -> str:
-    base, ext = os.path.splitext(path)
-    return f"{base}_{suffix}{ext}"
-
-
-def rename_output_files(run_date: str):
-    full_target = add_suffix_to_filename(
-        GERMAN_FILTER_FULL_OUTPUT_CSV,
-        run_date,
-    )
-    recent_target = add_suffix_to_filename(
-        GERMAN_FILTER_RECENT_OUTPUT_CSV,
-        f"{LAST_DAYS}days_{run_date}",
-    )
-
-    if os.path.exists(GERMAN_FILTER_FULL_OUTPUT_CSV):
-        os.replace(GERMAN_FILTER_FULL_OUTPUT_CSV, full_target)
-        print(f"Renamed {GERMAN_FILTER_FULL_OUTPUT_CSV} -> {full_target}")
-    else:
-        print(f"Warning: missing output {GERMAN_FILTER_FULL_OUTPUT_CSV}")
-
-    if os.path.exists(GERMAN_FILTER_RECENT_OUTPUT_CSV):
-        os.replace(GERMAN_FILTER_RECENT_OUTPUT_CSV, recent_target)
-        print(f"Renamed {GERMAN_FILTER_RECENT_OUTPUT_CSV} -> {recent_target}")
-    else:
-        print(f"Warning: missing output {GERMAN_FILTER_RECENT_OUTPUT_CSV}")
-
-
-def cleanup_intermediate_files():
-    for file_path in [FULL_OUTPUT_FILE, RECENT_OUTPUT_FILE]:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            print(f"Deleted intermediate file: {file_path}")
-
-
 def main():
     run_date = datetime.now().strftime("%Y%m%d")
 
-    run_script("cleaner.py")
-    run_script("german_filter.py")
+    stepstone_input = os.path.join("input", "stepstone.csv")
+    glassdoor_input = os.path.join("input", "glassdoor.csv")
 
-    rename_output_files(run_date)
-    cleanup_intermediate_files()
+    if os.path.exists(stepstone_input):
+        run_script("stepstone_cleaner.py")
+        process_input_file(RECENT_OUTPUT_FILE, GERMAN_FILTER_RECENT_OUTPUT_CSV, "stepstone recent")
+        final = f"stepstone_recent_{LAST_DAYS}days_{run_date}.csv"
+        os.replace(GERMAN_FILTER_RECENT_OUTPUT_CSV, final)
+        print(f"Output: {final}")
+        for f in [FULL_OUTPUT_FILE, RECENT_OUTPUT_FILE]:
+            if os.path.exists(f):
+                os.remove(f)
+
+    if os.path.exists(glassdoor_input):
+        run_script("glassdoor_cleaner.py")
+        process_input_file_playwright(GLASSDOOR_RECENT_OUTPUT_FILE, GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV, "glassdoor recent")
+        final = f"glassdoor_recent_{LAST_DAYS}days_{run_date}.csv"
+        os.replace(GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV, final)
+        print(f"Output: {final}")
+        if os.path.exists(GLASSDOOR_RECENT_OUTPUT_FILE):
+            os.remove(GLASSDOOR_RECENT_OUTPUT_FILE)
 
     print("Pipeline completed.")
 

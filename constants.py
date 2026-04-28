@@ -1,11 +1,15 @@
-INPUT_FILE = "stepstone.csv"
-FULL_OUTPUT_FILE = "stepstone_cleaned_filtered_full.csv"
-RECENT_OUTPUT_FILE = "stepstone_cleaned_filtered_recent.csv"
+INPUT_FILE = "input/stepstone.csv"
+FULL_OUTPUT_FILE = "stepstone_cleaned_full.csv"
+RECENT_OUTPUT_FILE = "stepstone_cleaned_recent.csv"
 
 GERMAN_FILTER_FULL_INPUT_CSV = FULL_OUTPUT_FILE
 GERMAN_FILTER_RECENT_INPUT_CSV = RECENT_OUTPUT_FILE
 GERMAN_FILTER_FULL_OUTPUT_CSV = "stepstone_apply_full.csv"
 GERMAN_FILTER_RECENT_OUTPUT_CSV = "stepstone_apply_recent.csv"
+
+GLASSDOOR_INPUT_FILE = "input/glassdoor.csv"
+GLASSDOOR_RECENT_OUTPUT_FILE = "glassdoor_cleaned_recent.csv"
+GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV = "glassdoor_apply_recent.csv"
 
 GERMAN_FILTER_REQUEST_DELAY = 0.2
 
