@@ -6,7 +6,6 @@ from datetime import datetime
 from constants import (
     FULL_OUTPUT_FILE,
     GERMAN_FILTER_RECENT_OUTPUT_CSV,
-    GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV,
     GLASSDOOR_RECENT_OUTPUT_FILE,
     LAST_DAYS,
     RECENT_OUTPUT_FILE,
@@ -41,10 +40,8 @@ def main():
 
     if PROCESS_GLASSDOOR and os.path.exists(glassdoor_input):
         run_script("glassdoor_cleaner.py")
-        os.replace(
-            GLASSDOOR_RECENT_OUTPUT_FILE, GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV
-        )
-        final = GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV
+        final = f"glassdoor_recent_{LAST_DAYS}days_{run_date}.csv"
+        os.replace(GLASSDOOR_RECENT_OUTPUT_FILE, final)
         print(f"Output: {final}")
 
     print("Pipeline completed.")
