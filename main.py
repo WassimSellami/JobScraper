@@ -3,7 +3,7 @@ from datetime import datetime
 
 from constants import OUTPUT_DIR, LAST_DAYS, SITE_PIPELINE_CONFIGS
 from german_filter import process_input_file
-from job_cleaner import clean_site
+from cleaner import clean_site
 
 
 def ensure_parent_dir(path: str):

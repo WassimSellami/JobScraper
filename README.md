@@ -4,9 +4,13 @@ JobScraper is a small pipeline to clean job-export CSVs (Stepstone, Glassdoor, X
 
 ## Components
 
-- `job_cleaner.py`: the single generic cleaner. It iterates over the enabled site configs in `constants.py`, detects the relevant columns using site-specific keywords, normalizes dates, and writes cleaned outputs.
+**Core modules:**
+- `cleaner.py`: the orchestration-only cleaner. Iterates over enabled site configs in `constants.py`, delegates to focused helpers, and writes cleaned outputs.
+- `text_utils.py`: handles encoding fixes for garbled Unicode characters.
+- `date_utils.py`: normalizes date text and converts relative dates to days-ago using config-driven pattern dispatch (no if/site_name branches).
+- `column_utils.py`: auto-detects CSV columns using content and name keywords.
 - `german_filter.py`: fetches job pages from cleaned CSVs and applies compiled regex patterns from `constants.py` to detect German-language requirements; it produces apply-ready recent CSVs with rows that do NOT require German.
-- `main.py`: orchestrates the pipeline. It runs the shared cleaner for each enabled source, then applies `german_filter.py` only for the sites whose `*_USE_GERMAN_FILTER` flag is enabled in `constants.py`, and moves the final recent files into `output/`.
+- `main.py`: orchestrates the full pipeline. Runs the shared cleaner for each enabled source, then applies `german_filter.py` only for sites whose `*_USE_GERMAN_FILTER` flag is enabled in `constants.py`, and moves final recent files into `output/`.
 
 ## Requirements
 
@@ -25,7 +29,7 @@ pip install pandas requests
 
 All settings live in `constants.py`, with user-tunable switches moved to `settings.py`:
 
-- Input filenames per source (`INPUT_FILE`, `XING_INPUT_FILE`, etc.)
+- Input filenames per source (`STEPSTONE_INPUT_FILE`, `XING_INPUT_FILE`, etc.)
 - Final output folder: `OUTPUT_DIR`
 - Site-specific column keywords such as `STEPSTONE_DATE_KEYWORDS`, `GLASSDOOR_URL_KEYWORDS`, and `XING_TITLE_COLUMN_KEYWORDS`
 - Per-site German-filter toggles such as `STEPSTONE_USE_GERMAN_FILTER`, `GLASSDOOR_USE_GERMAN_FILTER`, and `XING_USE_GERMAN_FILTER`
@@ -33,7 +37,14 @@ All settings live in `constants.py`, with user-tunable switches moved to `settin
 - `POSITION_EXCLUSION_TERMS` lists senior/irrelevant roles to drop
 - `GERMAN_REQUIRED_PATTERNS` contains regexes used by `german_filter.py` to detect German-language requirements
 - `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING` toggles control which cleaners `main.py` runs
-- `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING`, `GLASSDOOR_USE_GERMAN_FILTER`, `STEPSTONE_USE_GERMAN_FILTER`, `XING_USE_GERMAN_FILTER`, and `LAST_DAYS` are defined in `settings.py`
+
+**Per-site configuration in `SITE_PIPELINE_CONFIGS` dictionary:**
+- `sort_columns` — which columns to sort by (e.g., stepstone sorts by `["match", "_date_age_days"]`)
+- `output_column_order` — final column arrangement in output CSV
+- `categorical_columns` — site-specific categorical transformations (e.g., stepstone's match levels: "per", "gut")
+- All existing config keys for column detection, URL filtering, date parsing, etc.
+
+Settings from `settings.py`: `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING`, `GLASSDOOR_USE_GERMAN_FILTER`, `STEPSTONE_USE_GERMAN_FILTER`, `XING_USE_GERMAN_FILTER`, and `LAST_DAYS`
 
 ## How to run
 
@@ -46,7 +57,7 @@ python main.py
 Run the generic cleaner directly if you want to clean all enabled sites:
 
 ```bash
-python job_cleaner.py
+python cleaner.py
 ```
 
 ## Outputs
@@ -70,10 +81,24 @@ git rm --cached *.csv
 git commit -m "Stop tracking CSV outputs"
 ```
 
+## Architecture
+
+The pipeline is designed for **config-driven, site-specific behavior**:
+
+- **No if/site_name branches** — all site differences are config entries in `SITE_PIPELINE_CONFIGS`
+- **Focused modules** — each utility has a single responsibility:
+  - `text_utils.fix_encoding()` — encoding fixes only
+  - `date_utils.date_age_in_days()` — uses dispatch table for pattern matching (xing, glassdoor, stepstone)
+  - `column_utils.find_column()` — intelligent column detection
+  - `cleaner.py` — pure orchestration, no site-specific logic
+- **Dispatch-table date parsing** — adding a new site means adding one pattern entry to `_RELATIVE_PATTERNS` in `date_utils.py`, not editing long if/elif chains
+- **Easy testing** — each helper is independently testable with no global state
+
 ## Notes & behavior
 
 - `german_filter.py` performs live HTTP fetches of job URLs; adjust `GERMAN_FILTER_REQUEST_DELAY` in `constants.py` to slow down requests.
 - Regex patterns in `constants.py` are intentionally broad and include many German phrasing variants (e.g., `fließend`, `C1`, `Deutsch- und Englischkenntnisse`, `sprichst fließend Deutsch`). Add more patterns there as needed.
+- To add a new job source: create a config entry in `SITE_PIPELINE_CONFIGS`, add date patterns to `date_utils.py` if needed, and set column keywords in `constants.py`.
 
 ## Example
 
@@ -86,4 +111,9 @@ ls output/*recent*
 
 ## License / Contact
 
-This is a personal utility. If you want enhancements (more sites, better language detection, or different output formats), open an issue or edit `constants.py` and the cleaners accordingly.
+This is a personal utility. If you want enhancements (more sites, better language detection, or different output formats), simply:
+- Add a config entry to `SITE_PIPELINE_CONFIGS` in `constants.py`
+- Add date patterns to `_RELATIVE_PATTERNS` in `date_utils.py` if the site uses a new date format
+- Tune the keyword filters in `constants.py` for your target role
+
+The refactored architecture makes these additions straightforward without touching the core `cleaner.py`.

@@ -101,6 +101,16 @@ SITE_PIPELINE_CONFIGS = {
         "use_german_filter": STEPSTONE_USE_GERMAN_FILTER,
         "german_filter_temp_output_file": STEPSTONE_GERMAN_FILTER_RECENT_TEMP_FILE,
         "final_output_template": STEPSTONE_FINAL_RECENT_OUTPUT_TEMPLATE,
+        "sort_columns": ["match", "_date_age_days"],
+        "output_column_order": ["match", "date", "position", "job_url"],
+        "categorical_columns": [
+            {
+                "name": "match",
+                "exclude_value": "Passt weniger",
+                "replacements": {"Passt hervorragend": "per", "Passt gut": "gut"},
+                "categories": ["per", "gut"],
+            }
+        ],
     },
     "glassdoor": {
         "enabled": PROCESS_GLASSDOOR,
@@ -117,6 +127,9 @@ SITE_PIPELINE_CONFIGS = {
         "use_german_filter": GLASSDOOR_USE_GERMAN_FILTER,
         "german_filter_temp_output_file": None,
         "final_output_template": GLASSDOOR_FINAL_RECENT_OUTPUT_TEMPLATE,
+        "sort_columns": ["_date_age_days"],
+        "output_column_order": ["date", "position", "job_url"],
+        "categorical_columns": [],
     },
     "xing": {
         "enabled": PROCESS_XING,
@@ -133,6 +146,9 @@ SITE_PIPELINE_CONFIGS = {
         "use_german_filter": XING_USE_GERMAN_FILTER,
         "german_filter_temp_output_file": XING_APPLY_RECENT_TEMP_FILE,
         "final_output_template": XING_FINAL_RECENT_OUTPUT_TEMPLATE,
+        "sort_columns": ["_date_age_days", "position"],
+        "output_column_order": ["date", "position", "job_url"],
+        "categorical_columns": [],
     },
 }
 
