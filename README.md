@@ -4,11 +4,9 @@ JobScraper is a small pipeline to clean job-export CSVs (Stepstone, Glassdoor, X
 
 ## Components
 
-- `stepstone_cleaner.py`: cleans Stepstone CSVs. Auto-detects title/url/date columns, removes excluded senior roles, and emits a full cleaned file and a recent cleaned file (last `LAST_DAYS`).
-- `glassdoor_cleaner.py`: cleans Glassdoor CSVs following the same pattern (full/recent outputs).
-- `xing_cleaner.py`: cleans Xing CSVs; it auto-detects columns and normalizes English relative-date strings like `3 hours ago`, `2 days ago`, `Yesterday`, and `Just now`, producing full/recent outputs.
-- `german_filter.py`: fetches job pages from cleaned CSVs and applies compiled regex patterns from `constants.py` to detect German-language requirements; it produces apply-ready CSVs (full and recent) with rows that do NOT require German.
-- `main.py`: orchestrates the pipeline. It runs the enabled cleaners (controlled by `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING` in `constants.py`), then runs `german_filter.py` on the recent outputs and renames results with the execution date.
+- `job_cleaner.py`: the single generic cleaner. It iterates over the enabled site configs in `constants.py`, detects the relevant columns using site-specific keywords, normalizes dates, and writes cleaned outputs.
+- `german_filter.py`: fetches job pages from cleaned CSVs and applies compiled regex patterns from `constants.py` to detect German-language requirements; it produces apply-ready recent CSVs with rows that do NOT require German.
+- `main.py`: orchestrates the pipeline. It runs the shared cleaner for each enabled source, then applies `german_filter.py` only for the sites whose `*_USE_GERMAN_FILTER` flag is enabled in `constants.py`, and moves the final recent files into `output/`.
 
 ## Requirements
 
@@ -25,13 +23,17 @@ pip install pandas requests
 
 ## Configuration
 
-All settings live in `constants.py`:
+All settings live in `constants.py`, with user-tunable switches moved to `settings.py`:
 
-- Input/output filenames per source (`INPUT_FILE`, `XING_INPUT_FILE`, etc.)
+- Input filenames per source (`INPUT_FILE`, `XING_INPUT_FILE`, etc.)
+- Final output folder: `OUTPUT_DIR`
+- Site-specific column keywords such as `STEPSTONE_DATE_KEYWORDS`, `GLASSDOOR_URL_KEYWORDS`, and `XING_TITLE_COLUMN_KEYWORDS`
+- Per-site German-filter toggles such as `STEPSTONE_USE_GERMAN_FILTER`, `GLASSDOOR_USE_GERMAN_FILTER`, and `XING_USE_GERMAN_FILTER`
 - `LAST_DAYS` controls the "recent" window
 - `POSITION_EXCLUSION_TERMS` lists senior/irrelevant roles to drop
 - `GERMAN_REQUIRED_PATTERNS` contains regexes used by `german_filter.py` to detect German-language requirements
 - `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING` toggles control which cleaners `main.py` runs
+- `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING`, `GLASSDOOR_USE_GERMAN_FILTER`, `STEPSTONE_USE_GERMAN_FILTER`, `XING_USE_GERMAN_FILTER`, and `LAST_DAYS` are defined in `settings.py`
 
 ## How to run
 
@@ -41,24 +43,22 @@ Run the full pipeline (will respect `PROCESS_*` flags):
 python main.py
 ```
 
-If you only want a specific cleaner, run its module directly (example):
+Run the generic cleaner directly if you want to clean all enabled sites:
 
 ```bash
-python xing_cleaner.py
-python glassdoor_cleaner.py
-python stepstone_cleaner.py
+python job_cleaner.py
 ```
 
 ## Outputs
 
-Each cleaner writes two cleaned CSVs (full and recent). After `german_filter.py` runs you'll get apply-ready files, for example:
+Each cleaner writes a temporary recent CSV in the project root. The final apply-ready files are written to `output/`, for example:
 
-- `stepstone_cleaned_full.csv`
-- `stepstone_cleaned_recent.csv`
-- `stepstone_apply_full_YYYYMMDD.csv`
-- `stepstone_apply_recent_<LAST_DAYS>days_YYYYMMDD.csv`
+- `stepstone_cleaned_recent.csv` -> `output/stepstone_recent_<LAST_DAYS>days_YYYYMMDD.csv`
+- `stepstone_apply_recent.csv` -> `output/stepstone_recent_<LAST_DAYS>days_YYYYMMDD.csv`
+- `glassdoor_cleaned_recent.csv` -> `output/glassdoor_recent_<LAST_DAYS>days_YYYYMMDD.csv`
+- `xing_cleaned_recent.csv` -> `output/xing_recent_<LAST_DAYS>days_YYYYMMDD.csv`
 
-And likewise for `glassdoor` and `xing` (filenames configured in `constants.py`).
+The temporary root files are cleaned up by `main.py` after each site finishes.
 
 ## Git / housekeeping
 
@@ -77,11 +77,11 @@ git commit -m "Stop tracking CSV outputs"
 
 ## Example
 
-Run the pipeline and inspect the recent apply-ready CSV for the last `LAST_DAYS`:
+Run the pipeline and inspect the recent apply-ready CSVs for the last `LAST_DAYS`:
 
 ```bash
 python main.py
-ls *apply_recent*
+ls output/*recent*
 ```
 
 ## License / Contact

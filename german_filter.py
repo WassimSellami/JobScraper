@@ -6,12 +6,9 @@ import pandas as pd
 import requests
 from html.parser import HTMLParser
 from constants import (
-    GERMAN_FILTER_FULL_INPUT_CSV,
-    GERMAN_FILTER_FULL_OUTPUT_CSV,
     GERMAN_FILTER_REQUEST_DELAY,
-    GERMAN_FILTER_RECENT_INPUT_CSV,
-    GERMAN_FILTER_RECENT_OUTPUT_CSV,
     GERMAN_REQUIRED_PATTERNS,
+    SITE_PIPELINE_CONFIGS,
 )
 
 REQUEST_DELAY = GERMAN_FILTER_REQUEST_DELAY
@@ -118,16 +115,15 @@ def process_input_file(input_csv: str, output_csv: str, label: str):
 
 def main():
     log("Starting german_filter.py")
-    process_input_file(
-        GERMAN_FILTER_FULL_INPUT_CSV,
-        GERMAN_FILTER_FULL_OUTPUT_CSV,
-        label="full",
-    )
-    process_input_file(
-        GERMAN_FILTER_RECENT_INPUT_CSV,
-        GERMAN_FILTER_RECENT_OUTPUT_CSV,
-        label="recent",
-    )
+    for site_name, config in SITE_PIPELINE_CONFIGS.items():
+        if not config["enabled"] or not config.get("use_german_filter", False):
+            continue
+
+        process_input_file(
+            config["recent_temp_output_file"],
+            config["german_filter_temp_output_file"],
+            label=f"{site_name} recent",
+        )
 
 
 if __name__ == "__main__":

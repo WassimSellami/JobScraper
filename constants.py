@@ -1,30 +1,60 @@
-PROCESS_GLASSDOOR = False
-PROCESS_STEPSTONE = False
-PROCESS_XING = True
+from settings import (
+    GLASSDOOR_USE_GERMAN_FILTER,
+    LAST_DAYS,
+    PROCESS_GLASSDOOR,
+    PROCESS_STEPSTONE,
+    PROCESS_XING,
+    STEPSTONE_USE_GERMAN_FILTER,
+    XING_USE_GERMAN_FILTER,
+)
 
-
-INPUT_FILE = "input/stepstone.csv"
-FULL_OUTPUT_FILE = "stepstone_cleaned_full.csv"
-RECENT_OUTPUT_FILE = "stepstone_cleaned_recent.csv"
+OUTPUT_DIR = "output"
+STEPSTONE_CLEANED_RECENT_TEMP_FILE = "stepstone_cleaned_recent.csv"
+STEPSTONE_APPLY_RECENT_TEMP_FILE = "stepstone_apply_recent.csv"
 
 XING_INPUT_FILE = "input/xing.csv"
-XING_FULL_OUTPUT_FILE = "xing_cleaned_full.csv"
-XING_RECENT_OUTPUT_FILE = "xing_cleaned_recent.csv"
-XING_GERMAN_FILTER_FULL_OUTPUT_CSV = "xing_apply_full.csv"
-XING_GERMAN_FILTER_RECENT_OUTPUT_CSV = "xing_apply_recent.csv"
-
-GERMAN_FILTER_FULL_INPUT_CSV = FULL_OUTPUT_FILE
-GERMAN_FILTER_RECENT_INPUT_CSV = RECENT_OUTPUT_FILE
-GERMAN_FILTER_FULL_OUTPUT_CSV = "stepstone_apply_full.csv"
-GERMAN_FILTER_RECENT_OUTPUT_CSV = "stepstone_apply_recent.csv"
+XING_CLEANED_RECENT_TEMP_FILE = "xing_cleaned_recent.csv"
+XING_APPLY_RECENT_TEMP_FILE = "xing_apply_recent.csv"
 
 GLASSDOOR_INPUT_FILE = "input/glassdoor.csv"
-GLASSDOOR_RECENT_OUTPUT_FILE = "glassdoor_cleaned_recent.csv"
-GLASSDOOR_GERMAN_FILTER_RECENT_OUTPUT_CSV = "glassdoor_apply_recent.csv"
+GLASSDOOR_CLEANED_RECENT_TEMP_FILE = "glassdoor_cleaned_recent.csv"
+GLASSDOOR_APPLY_RECENT_TEMP_FILE = "glassdoor_apply_recent.csv"
 
 GERMAN_FILTER_REQUEST_DELAY = 0.2
 
-LAST_DAYS = 7
+STEPSTONE_INPUT_FILE = "input/stepstone.csv"
+STEPSTONE_GERMAN_FILTER_RECENT_TEMP_FILE = STEPSTONE_APPLY_RECENT_TEMP_FILE
+STEPSTONE_FINAL_RECENT_OUTPUT_TEMPLATE = "stepstone_recent_{days}days_{date}.csv"
+GLASSDOOR_FINAL_RECENT_OUTPUT_TEMPLATE = "glassdoor_recent_{days}days_{date}.csv"
+XING_FINAL_RECENT_OUTPUT_TEMPLATE = "xing_recent_{days}days_{date}.csv"
+
+STEPSTONE_TITLE_KEYWORDS = [
+    "Softwareentwickler",
+    "Developer",
+    "Engineer",
+    "Entwickler",
+]
+STEPSTONE_URL_KEYWORDS = [
+    r"stepstone\.de/stellenangebote--",
+    r"stepstone\.de/stellenangebote",
+    r"-inline\.html",
+]
+STEPSTONE_DATE_KEYWORDS = [r"vor\s+\d+"]
+STEPSTONE_MATCH_KEYWORDS = ["Passt"]
+
+GLASSDOOR_TITLE_KEYWORDS = [
+    r"m/w/d",
+    r"all gender",
+    r"\b(?:engineer|developer|scientist|architect|manager|specialist|consultant|analyst|devops|data|application|software|process|test|quality|security|sales|product)\b",
+]
+GLASSDOOR_URL_KEYWORDS = [r"/job-listing/"]
+GLASSDOOR_DATE_KEYWORDS = [r"^\d+(?:Std|T)$"]
+
+XING_TITLE_COLUMN_KEYWORDS = ["headline"]
+XING_URL_KEYWORDS = [r"(?:www\.)?xing\.com/jobs/|/jobs/"]
+XING_DATE_KEYWORDS = [
+    r"^(?:\d+\s+(?:hour|hours|day|days|week|weeks|month|months|year|years)\s+ago|yesterday|just now|today)$",
+]
 
 POSITION_EXCLUSION_TERMS = [
     "Senior",
@@ -47,6 +77,64 @@ POSITION_EXCLUSION_TERMS = [
 ]
 
 DEUTSCH_VALUE = "Deutsch"
+
+STEPSTONE_REMOVE_EXACT_VALUE = DEUTSCH_VALUE
+
+SITE_PIPELINE_CONFIGS = {
+    "stepstone": {
+        "enabled": PROCESS_STEPSTONE,
+        "input_file": STEPSTONE_INPUT_FILE,
+        "recent_temp_output_file": STEPSTONE_CLEANED_RECENT_TEMP_FILE,
+        "title_column_name_keywords": [],
+        "title_content_keywords": STEPSTONE_TITLE_KEYWORDS,
+        "title_exclude_url": True,
+        "url_content_keywords": STEPSTONE_URL_KEYWORDS,
+        "date_content_keywords": STEPSTONE_DATE_KEYWORDS,
+        "extra_columns": [
+            {
+                "name": "match",
+                "content_keywords": STEPSTONE_MATCH_KEYWORDS,
+            }
+        ],
+        "drop_exact_value_rows": [STEPSTONE_REMOVE_EXACT_VALUE],
+        "date_parser": "stepstone",
+        "use_german_filter": STEPSTONE_USE_GERMAN_FILTER,
+        "german_filter_temp_output_file": STEPSTONE_GERMAN_FILTER_RECENT_TEMP_FILE,
+        "final_output_template": STEPSTONE_FINAL_RECENT_OUTPUT_TEMPLATE,
+    },
+    "glassdoor": {
+        "enabled": PROCESS_GLASSDOOR,
+        "input_file": GLASSDOOR_INPUT_FILE,
+        "recent_temp_output_file": GLASSDOOR_CLEANED_RECENT_TEMP_FILE,
+        "title_column_name_keywords": [],
+        "title_content_keywords": GLASSDOOR_TITLE_KEYWORDS,
+        "title_exclude_url": True,
+        "url_content_keywords": GLASSDOOR_URL_KEYWORDS,
+        "date_content_keywords": GLASSDOOR_DATE_KEYWORDS,
+        "extra_columns": [],
+        "drop_exact_value_rows": [],
+        "date_parser": "glassdoor",
+        "use_german_filter": GLASSDOOR_USE_GERMAN_FILTER,
+        "german_filter_temp_output_file": None,
+        "final_output_template": GLASSDOOR_FINAL_RECENT_OUTPUT_TEMPLATE,
+    },
+    "xing": {
+        "enabled": PROCESS_XING,
+        "input_file": XING_INPUT_FILE,
+        "recent_temp_output_file": XING_CLEANED_RECENT_TEMP_FILE,
+        "title_column_name_keywords": XING_TITLE_COLUMN_KEYWORDS,
+        "title_content_keywords": [],
+        "title_exclude_url": True,
+        "url_content_keywords": XING_URL_KEYWORDS,
+        "date_content_keywords": XING_DATE_KEYWORDS,
+        "extra_columns": [],
+        "drop_exact_value_rows": [],
+        "date_parser": "xing",
+        "use_german_filter": XING_USE_GERMAN_FILTER,
+        "german_filter_temp_output_file": XING_APPLY_RECENT_TEMP_FILE,
+        "final_output_template": XING_FINAL_RECENT_OUTPUT_TEMPLATE,
+    },
+}
 
 GERMAN_REQUIRED_PATTERNS = [
     # Explicit CEFR / strict
