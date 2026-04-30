@@ -35,9 +35,15 @@ POSITION_EXCLUSION_TERMS = [
     "ERP",
     "Defence",
     "Architect",
+    "architekt",
     "Working Student",
     "Werkstudent",
     "Internship",
+    "Praktikum",
+    "Head of",
+    "Leiter",
+    "Teamleiter",
+    "Geschäftsführer",
 ]
 
 DEUTSCH_VALUE = "Deutsch"
@@ -45,6 +51,8 @@ DEUTSCH_VALUE = "Deutsch"
 
 GERMAN_REQUIRED_PATTERNS = [
     r"(flie[sß]end|verhandlungssicher|muttersprachlich).{0,40}deutsch",
+    r"flie[sß]end deutsch",
+    r"gute deutschkenntnisse",
     r"deutsch.{0,40}(flie[sß]end|verhandlungssicher|muttersprachlich)",
     r"\b(c1|c2)[- ]deutsch",
     r"deutsch[- ](c1|c2)",
@@ -58,6 +66,7 @@ GERMAN_REQUIRED_PATTERNS = [
     r"deutsch.{0,30}(erforderlich|voraussetzung|notwendig|pflicht)",
     r"(sehr gut|ausgezeichnet|exzellent).{0,20}deutsch",
     r"deutsch.{0,20}(sehr gut|ausgezeichnet|exzellent)",
+    r"gute deutsch",
     r"deutsch als unternehmenssprache",
     r"deutsch(kenntnisse)? (auf )?(einem )?(professionell|gesch[äa]ftlich|verhandlungs)",
     r"(arbeitssprache|unternehmenssprache|firmensprache) (ist )?deutsch",
