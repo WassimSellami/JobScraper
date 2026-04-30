@@ -64,6 +64,21 @@ GERMAN_REQUIRED_PATTERNS = [
     r"\b(?:fluent|business[- ]fluent|native(?:[- ]level)?|near[- ]native)\b.{0,30}\bgerman\b",
     r"\bgerman\b.{0,30}\b(?:fluent|business[- ]fluent|native(?:[- ]level)?|near[- ]native)\b",
     r"\b(?:fluent|business[- ]fluent|native(?:[- ]level)?|near[- ]native)\s+german(?:\s+skills?)?\b",
+    r"sprichst\s+(flie[sß]end|sehr gut|gut)\s+deutsch",
+    r"gut und sprichst\s+flie[sß]end\s+deutsch",
+    # Parenthetical / colon format
+    r"\bdeutsch\s*[:(]\s*(?:c1|c2|flie(?:ß|ss)end|verhandlungssicher|muttersprachlich|gut|sehr gut)\b",
+    # "Sie/Du sprechen/beherrschen Deutsch"
+    r"\b(?:sie\s+sprechen|du\s+sprichst|sie\s+beherrschen|du\s+beherrschst)\s+(?:(?:flie(?:ß|ss)end|gut|sehr gut|verhandlungssicher)\s+)?deutsch\b",
+    r"\bbeherrschung\s+der\s+deutschen\s+sprache\b",
+    # "Deutsch als Muttersprache" / Muttersprachenniveau
+    r"\bdeutsch\s+als\s+muttersprache\b",
+    r"\bdeutsch(?:kenntnisse)?\s+auf\s+muttersprachlichem?\s+niveau\b",
+    # Patterns to detect explicit language lists like "Erforderliche Sprachen\nDeutsch"
+    r"erforderliche sprachen[\s\S]{0,80}\bdeutsch\b",
+    r"sprachkenntnisse[\s\S]{0,80}\bdeutsch\b",
+    # Patterns to catch constructs like "Deutsch- und guten Englischkenntnisse"
+    r"\bdeutsch(?:-|[ \-])?und[\s\S]{0,40}\benglisch(?:kenntnisse)?\b",
     # Broad / non-strict German wording
     r"\b(?:gut|gute|sehr gut|sehr gute|ausgezeichnet|ausgezeichnete|exzellent|exzellente|solide|fundiert|fundierte|sicher|sichere|kommunikationssicher|kommunikationssichere)\s+deutschkenntnisse\b",
     r"\bdeutschkenntnisse\b.{0,30}\b(?:gut|gute|sehr gut|sehr gute|ausgezeichnet|ausgezeichnete|exzellent|exzellente|solide|fundiert|fundierte|sicher|sichere|kommunikationssicher|kommunikationssichere)\b",
@@ -73,6 +88,9 @@ GERMAN_REQUIRED_PATTERNS = [
     r"\bkenntnisse\s+der\s+deutschen\s+sprache\b.{0,30}\b(?:gut|gute|sehr gut|sehr gute|sicher|sichere|fundiert|fundierte)\b",
     r"\b(?:gut|gute|sehr gut|sehr gute)\s+kenntnisse\s+in\s+deutsch\b",
     r"\bdeutschkenntnisse\s+auf\s+(?:gutem|sehr gutem|sicherem|professionellem)\s+niveau\b",
+    # "Sprachkenntnisse in Deutsch"
+    r"\b(?:gute|sehr gute|ausgezeichnete|flie(?:ß|ss)ende)\s+sprachkenntnisse\s+in\s+deutsch\b",
+    r"\bsprachkenntnisse\b.{0,20}\bin\s+deutsch\b",
     # English broad wording
     r"\b(?:good|very good|strong|excellent|solid)\s+german(?:\s+language)?\s+skills\b",
     r"\bgerman(?:\s+language)?\s+skills\b.{0,30}\b(?:good|very good|strong|excellent|solid)\b",
@@ -81,6 +99,8 @@ GERMAN_REQUIRED_PATTERNS = [
     r"\bstrong\s+command\s+of\s+german\b",
     r"\bgood\s+command\s+of\s+german\b",
     # Spoken / written German
+    r"\bdeutsch\b.{0,20}\bin\s+wort\s+und\s+schrift\b",
+    r"\bin\s+wort\s+und\s+schrift\b.{0,20}\bdeutsch\b",
     r"\bdeutschkenntnisse\b.{0,30}\bin\s+wort\s+und\s+schrift\b",
     r"\bin\s+wort\s+und\s+schrift\b.{0,30}\bdeutschkenntnisse\b",
     r"\b(?:gute|sehr gute|flie(?:ß|ss)ende|verhandlungssichere)\s+deutschkenntnisse\s+in\s+wort\s+und\s+schrift\b",
@@ -99,6 +119,8 @@ GERMAN_REQUIRED_PATTERNS = [
     r"\b(?:arbeitssprache|unternehmenssprache|firmensprache)\s+(?:ist\s+)?deutsch\b",
     r"\bdeutsch\s+ist\s+die\s+(?:arbeitssprache|unternehmenssprache|firmensprache)\b",
     r"\b(?:team|kommunikation|kommunizieren|austausch|abstimmung)\b.{0,30}\bauf\s+deutsch\b",
+    # "Deutschsprachig" in work-context nouns
+    r"\bdeutschsprachig(?:e[nrms]?)?\s+(?:kommunikation|umfeld|team|umgebung|arbeitsumfeld)\b",
     # Common combined German + English phrasing
     r"\b(?:gute|sehr gute|flie(?:ß|ss)ende)\b.{0,20}\bdeutsch-?\s*und\s*englischkenntnisse\b",
     r"\b(?:gute|sehr gute|flie(?:ß|ss)ende)\b.{0,20}\benglisch-?\s*und\s*deutschkenntnisse\b",
