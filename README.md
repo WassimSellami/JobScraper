@@ -1,84 +1,89 @@
 # JobScraper
 
-This tool helps you clean a Stepstone jobs CSV and keep only roles that are more suitable for your profile. It removes unwanted listings and gives you ready-to-apply output files.
+JobScraper is a small pipeline to clean job-export CSVs (Stepstone, Glassdoor, Xing), filter out undesired roles, and detect positions that require German so you get ready-to-apply lists.
 
-## What it does
+## Components
 
-1. `cleaner.py`
-- Reads raw input CSV (`stepstone.csv`)
-- Auto-detects title/url/match/date columns
-- Filters out unwanted senior roles
-- Produces two intermediate files:
-  - full cleaned file
-  - recent cleaned file (last `LAST_DAYS`)
-
-2. `german_filter.py`
-- Reads the two cleaned files
-- Opens each job URL
-- Uses regex patterns to detect German language requirements
-- Skips matching jobs and keeps the rest
-- Produces two apply-ready files:
-  - `stepstone_apply_full.csv`
-  - `stepstone_apply_recent.csv`
-
-3. `main.py`
-- Runs `cleaner.py`
-- Runs `german_filter.py`
-- Renames final outputs with execution date (and recent days)
-- Deletes intermediate cleaned files
-
-4. `xing_cleaner.py`
-- Reads raw Xing CSV (`input/xing.csv`)
-- Extracts the job URL, title, and relative date columns
-- Keeps only Xing job links with relative ages like `3 hours ago`, `2 days ago`, `Yesterday`, and `Just now`
-- Produces the same kind of full/recent cleaned files as the other cleaners
+- `stepstone_cleaner.py`: cleans Stepstone CSVs. Auto-detects title/url/date columns, removes excluded senior roles, and emits a full cleaned file and a recent cleaned file (last `LAST_DAYS`).
+- `glassdoor_cleaner.py`: cleans Glassdoor CSVs following the same pattern (full/recent outputs).
+- `xing_cleaner.py`: cleans Xing CSVs; it auto-detects columns and normalizes English relative-date strings like `3 hours ago`, `2 days ago`, `Yesterday`, and `Just now`, producing full/recent outputs.
+- `german_filter.py`: fetches job pages from cleaned CSVs and applies compiled regex patterns from `constants.py` to detect German-language requirements; it produces apply-ready CSVs (full and recent) with rows that do NOT require German.
+- `main.py`: orchestrates the pipeline. It runs the enabled cleaners (controlled by `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING` in `constants.py`), then runs `german_filter.py` on the recent outputs and renames results with the execution date.
 
 ## Requirements
 
 - Python 3.10+
-- Packages:
+- Dependencies:
   - `pandas`
   - `requests`
 
-Install dependencies:
+Install:
 
 ```bash
 pip install pandas requests
 ```
 
+## Configuration
+
+All settings live in `constants.py`:
+
+- Input/output filenames per source (`INPUT_FILE`, `XING_INPUT_FILE`, etc.)
+- `LAST_DAYS` controls the "recent" window
+- `POSITION_EXCLUSION_TERMS` lists senior/irrelevant roles to drop
+- `GERMAN_REQUIRED_PATTERNS` contains regexes used by `german_filter.py` to detect German-language requirements
+- `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING` toggles control which cleaners `main.py` runs
+
 ## How to run
 
-Run the full pipeline:
+Run the full pipeline (will respect `PROCESS_*` flags):
 
 ```bash
 python main.py
 ```
 
-## Final outputs
+If you only want a specific cleaner, run its module directly (example):
 
-After `main.py`, you will get files like:
+```bash
+python xing_cleaner.py
+python glassdoor_cleaner.py
+python stepstone_cleaner.py
+```
 
+## Outputs
+
+Each cleaner writes two cleaned CSVs (full and recent). After `german_filter.py` runs you'll get apply-ready files, for example:
+
+- `stepstone_cleaned_full.csv`
+- `stepstone_cleaned_recent.csv`
 - `stepstone_apply_full_YYYYMMDD.csv`
 - `stepstone_apply_recent_<LAST_DAYS>days_YYYYMMDD.csv`
 
-Example:
+And likewise for `glassdoor` and `xing` (filenames configured in `constants.py`).
 
-- `stepstone_apply_full_20260427.csv`
-- `stepstone_apply_recent_2days_20260427.csv`
+## Git / housekeeping
 
-## Configuration
+- The repo `.gitignore` includes a Python baseline and ignores `*.csv`, `*.pyc`, and `__pycache__/` directories. If CSVs were already committed, untrack them with:
 
-All tunable settings are in `constants.py`, including:
+```bash
+git rm --cached input/*.csv
+git rm --cached *.csv
+git commit -m "Stop tracking CSV outputs"
+```
 
-- Input/output file names
-- `LAST_DAYS` for recent filtering
-- Position exclusion terms
-- German-language regex patterns
-- Request delay for URL checks
+## Notes & behavior
 
-## Notes
+- `german_filter.py` performs live HTTP fetches of job URLs; adjust `GERMAN_FILTER_REQUEST_DELAY` in `constants.py` to slow down requests.
+- Regex patterns in `constants.py` are intentionally broad and include many German phrasing variants (e.g., `fließend`, `C1`, `Deutsch- und Englischkenntnisse`, `sprichst fließend Deutsch`). Add more patterns there as needed.
 
-- `german_filter.py` logs each checked row as:
-  - `[i/n] ✅ kept`
-  - `[i/n] ❌ skipped (match: ...)`
-- Request speed is controlled by `GERMAN_FILTER_REQUEST_DELAY`.
+## Example
+
+Run the pipeline and inspect the recent apply-ready CSV for the last `LAST_DAYS`:
+
+```bash
+python main.py
+ls *apply_recent*
+```
+
+## License / Contact
+
+This is a personal utility. If you want enhancements (more sites, better language detection, or different output formats), open an issue or edit `constants.py` and the cleaners accordingly.
