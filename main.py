@@ -8,9 +8,13 @@ from constants import (
     GERMAN_FILTER_RECENT_OUTPUT_CSV,
     GLASSDOOR_RECENT_OUTPUT_FILE,
     LAST_DAYS,
+    PROCESS_XING,
     RECENT_OUTPUT_FILE,
     PROCESS_GLASSDOOR,
     PROCESS_STEPSTONE,
+    XING_FULL_OUTPUT_FILE,
+    XING_GERMAN_FILTER_RECENT_OUTPUT_CSV,
+    XING_RECENT_OUTPUT_FILE,
 )
 from german_filter import process_input_file
 
@@ -25,6 +29,7 @@ def main():
 
     stepstone_input = os.path.join("input", "stepstone.csv")
     glassdoor_input = os.path.join("input", "glassdoor.csv")
+    xing_input = os.path.join("input", "xing.csv")
 
     if PROCESS_STEPSTONE and os.path.exists(stepstone_input):
         run_script("stepstone_cleaner.py")
@@ -43,6 +48,18 @@ def main():
         final = f"glassdoor_recent_{LAST_DAYS}days_{run_date}.csv"
         os.replace(GLASSDOOR_RECENT_OUTPUT_FILE, final)
         print(f"Output: {final}")
+
+    if PROCESS_XING and os.path.exists(xing_input):
+        run_script("xing_cleaner.py")
+        process_input_file(
+            XING_RECENT_OUTPUT_FILE, XING_GERMAN_FILTER_RECENT_OUTPUT_CSV, "xing recent"
+        )
+        final = f"xing_recent_{LAST_DAYS}days_{run_date}.csv"
+        os.replace(XING_GERMAN_FILTER_RECENT_OUTPUT_CSV, final)
+        print(f"Output: {final}")
+        for f in [XING_FULL_OUTPUT_FILE, XING_RECENT_OUTPUT_FILE]:
+            if os.path.exists(f):
+                os.remove(f)
 
     print("Pipeline completed.")
 

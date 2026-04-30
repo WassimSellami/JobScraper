@@ -27,6 +27,12 @@ This tool helps you clean a Stepstone jobs CSV and keep only roles that are more
 - Renames final outputs with execution date (and recent days)
 - Deletes intermediate cleaned files
 
+4. `xing_cleaner.py`
+- Reads raw Xing CSV (`input/xing.csv`)
+- Extracts the job URL, title, and relative date columns
+- Keeps only Xing job links with relative ages like `3 hours ago`, `2 days ago`, `Yesterday`, and `Just now`
+- Produces the same kind of full/recent cleaned files as the other cleaners
+
 ## Requirements
 
 - Python 3.10+

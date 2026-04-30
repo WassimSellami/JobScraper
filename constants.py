@@ -1,10 +1,17 @@
-PROCESS_GLASSDOOR = True
+PROCESS_GLASSDOOR = False
 PROCESS_STEPSTONE = False
+PROCESS_XING = True
 
 
 INPUT_FILE = "input/stepstone.csv"
 FULL_OUTPUT_FILE = "stepstone_cleaned_full.csv"
 RECENT_OUTPUT_FILE = "stepstone_cleaned_recent.csv"
+
+XING_INPUT_FILE = "input/xing.csv"
+XING_FULL_OUTPUT_FILE = "xing_cleaned_full.csv"
+XING_RECENT_OUTPUT_FILE = "xing_cleaned_recent.csv"
+XING_GERMAN_FILTER_FULL_OUTPUT_CSV = "xing_apply_full.csv"
+XING_GERMAN_FILTER_RECENT_OUTPUT_CSV = "xing_apply_recent.csv"
 
 GERMAN_FILTER_FULL_INPUT_CSV = FULL_OUTPUT_FILE
 GERMAN_FILTER_RECENT_INPUT_CSV = RECENT_OUTPUT_FILE
@@ -30,6 +37,7 @@ POSITION_EXCLUSION_TERMS = [
     "Architect",
     "Working Student",
     "Werkstudent",
+    "Internship",
 ]
 
 DEUTSCH_VALUE = "Deutsch"
@@ -50,6 +58,7 @@ GERMAN_REQUIRED_PATTERNS = [
     r"deutsch.{0,30}(erforderlich|voraussetzung|notwendig|pflicht)",
     r"(sehr gut|ausgezeichnet|exzellent).{0,20}deutsch",
     r"deutsch.{0,20}(sehr gut|ausgezeichnet|exzellent)",
+    r"deutsch als unternehmenssprache",
     r"deutsch(kenntnisse)? (auf )?(einem )?(professionell|gesch[äa]ftlich|verhandlungs)",
     r"(arbeitssprache|unternehmenssprache|firmensprache) (ist )?deutsch",
     r"deutsch (ist )?(die )?(arbeitssprache|unternehmenssprache|firmensprache)",
