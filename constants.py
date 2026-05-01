@@ -74,6 +74,28 @@ POSITION_EXCLUSION_TERMS = [
     "Leiter",
     "Teamleiter",
     "Geschäftsführer",
+    "Chief",
+    "Masterthesis",
+    "Masterarbeit",
+    "student assistant",
+    "Embedded Software Engineer",
+    "Site Reliability Engineer",
+    "Staff Frontend Developer",
+]
+
+COMPANY_EXCLUSION_TERMS = [
+    "Helsing",
+    "Ferchau",
+    "check24",
+    "Bending Spoons",
+    "BMW Group",
+    "NVIDIA",
+]
+
+LINKEDIN_JOB_LEVEL_ALLOWED_VALUES = [
+    "entry level",
+    "mid-senior level",
+    "not applicable",
 ]
 
 DEUTSCH_VALUE = "Deutsch"
@@ -196,6 +218,8 @@ GERMAN_REQUIRED_PATTERNS = [
     r"\b(?:gute|sehr gute|ausgezeichnete|flie(?:ß|ss)ende)\s+sprachkenntnisse\s+in\s+deutsch\b",
     r"\bsprachkenntnisse\b.{0,20}\bin\s+deutsch\b",
     # English broad wording
+    r"\bgerman\s+language\s+skills\b",
+    r"\bfluency\s+in\s+german\b",
     r"\b(?:good|very good|strong|excellent|solid)\s+german(?:\s+language)?\s+skills\b",
     r"\bgerman(?:\s+language)?\s+skills\b.{0,30}\b(?:good|very good|strong|excellent|solid)\b",
     r"\bproficient\s+in\s+german\b",
@@ -228,6 +252,7 @@ GERMAN_REQUIRED_PATTERNS = [
     # Common combined German + English phrasing
     r"\b(?:gute|sehr gute|flie(?:ß|ss)ende)\b.{0,20}\bdeutsch-?\s*und\s*englischkenntnisse\b",
     r"\b(?:gute|sehr gute|flie(?:ß|ss)ende)\b.{0,20}\benglisch-?\s*und\s*deutschkenntnisse\b",
+    r"\bflie(?:ß|ss)ende\s+deutsch-?\s*und\s*(?:sehr\s+guten|guten|sehr\s+gute|gute)\s+englischkenntnisse\b",
     r"\b(?:good|very good|fluent)\s+german\s+and\s+english\b",
     r"\b(?:good|very good|fluent)\s+english\s+and\s+german\b",
 ]
