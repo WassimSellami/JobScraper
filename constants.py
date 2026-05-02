@@ -1,6 +1,9 @@
+import os
+
 from settings import (
     GLASSDOOR_USE_GERMAN_FILTER,
     LAST_DAYS,
+    LINKEDIN_JOB_LEVEL_ALLOWED_VALUES,
     PROCESS_GLASSDOOR,
     PROCESS_STEPSTONE,
     PROCESS_XING,
@@ -8,21 +11,27 @@ from settings import (
     XING_USE_GERMAN_FILTER,
 )
 
+INPUT_DIR = "input"
 OUTPUT_DIR = "output"
+TEMP_DIR = os.path.join(OUTPUT_DIR, "temp")
+
+LINKEDIN_INPUT_FILE = os.path.join(TEMP_DIR, "linkedin_raw.csv")
+LINKEDIN_FILTERED_FILE = os.path.join(OUTPUT_DIR, "linkedin_filtered.csv")
+
 STEPSTONE_CLEANED_RECENT_TEMP_FILE = "stepstone_cleaned_recent.csv"
 STEPSTONE_APPLY_RECENT_TEMP_FILE = "stepstone_apply_recent.csv"
 
-XING_INPUT_FILE = "input/xing.csv"
+XING_INPUT_FILE = os.path.join(INPUT_DIR, "xing.csv")
 XING_CLEANED_RECENT_TEMP_FILE = "xing_cleaned_recent.csv"
 XING_APPLY_RECENT_TEMP_FILE = "xing_apply_recent.csv"
 
-GLASSDOOR_INPUT_FILE = "input/glassdoor.csv"
+GLASSDOOR_INPUT_FILE = os.path.join(INPUT_DIR, "glassdoor.csv")
 GLASSDOOR_CLEANED_RECENT_TEMP_FILE = "glassdoor_cleaned_recent.csv"
 GLASSDOOR_APPLY_RECENT_TEMP_FILE = "glassdoor_apply_recent.csv"
 
 GERMAN_FILTER_REQUEST_DELAY = 0.2
 
-STEPSTONE_INPUT_FILE = "input/stepstone.csv"
+STEPSTONE_INPUT_FILE = os.path.join(INPUT_DIR, "stepstone.csv")
 STEPSTONE_GERMAN_FILTER_RECENT_TEMP_FILE = STEPSTONE_APPLY_RECENT_TEMP_FILE
 STEPSTONE_FINAL_RECENT_OUTPUT_TEMPLATE = "stepstone_recent_{days}days_{date}.csv"
 GLASSDOOR_FINAL_RECENT_OUTPUT_TEMPLATE = "glassdoor_recent_{days}days_{date}.csv"
@@ -54,6 +63,28 @@ XING_TITLE_COLUMN_KEYWORDS = ["headline"]
 XING_URL_KEYWORDS = [r"(?:www\.)?xing\.com/jobs/|/jobs/"]
 XING_DATE_KEYWORDS = [
     r"^(?:\d+\s+(?:hour|hours|day|days|week|weeks|month|months|year|years)\s+ago|yesterday|just now|today)$",
+]
+
+LINKEDIN_OUTPUT_COLUMNS = [
+    "id",
+    "title",
+    "description",
+    "job_level",
+    "company_industry",
+    "date_posted",
+    "job_url",
+    "company",
+    "location",
+    "job_type",
+]
+
+LINKEDIN_AFTER_FILTER_COLUMNS = [
+    "job_level",
+    "title",
+    "date_posted",
+    "company",
+    "company_industry",
+    "job_url",
 ]
 
 POSITION_EXCLUSION_TERMS = [
@@ -90,12 +121,6 @@ COMPANY_EXCLUSION_TERMS = [
     "Bending Spoons",
     "BMW Group",
     "NVIDIA",
-]
-
-LINKEDIN_JOB_LEVEL_ALLOWED_VALUES = [
-    "entry level",
-    "mid-senior level",
-    "not applicable",
 ]
 
 DEUTSCH_VALUE = "Deutsch"

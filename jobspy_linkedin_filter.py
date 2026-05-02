@@ -1,18 +1,15 @@
 import os
-import re
 import pandas as pd
 from datetime import datetime
 from constants import (
-    GERMAN_REQUIRED_PATTERNS,
     POSITION_EXCLUSION_TERMS,
     COMPANY_EXCLUSION_TERMS,
     LINKEDIN_JOB_LEVEL_ALLOWED_VALUES,
+    LINKEDIN_FILTERED_FILE,
+    LINKEDIN_INPUT_FILE,
+    LINKEDIN_AFTER_FILTER_COLUMNS,
 )
-
-GERMAN_REGEX = re.compile(
-    "|".join(GERMAN_REQUIRED_PATTERNS),
-    flags=re.IGNORECASE,
-)
+from utils import has_german_requirement, GERMAN_REGEX
 
 
 def log(message: str):
@@ -45,16 +42,6 @@ def has_company_exclusion_term(company: str) -> bool:
     return False
 
 
-def has_german_requirement(description: str) -> bool:
-    """Check if description contains German language requirement."""
-    if not description or pd.isna(description):
-        return False
-
-    description_text = str(description)
-    match = GERMAN_REGEX.search(description_text)
-    return match is not None
-
-
 def filter_linkedin_jobs(input_file: str, output_file: str):
     """Filter LinkedIn jobs based on criteria."""
     log(f"Starting LinkedIn job filter")
@@ -72,6 +59,24 @@ def filter_linkedin_jobs(input_file: str, output_file: str):
         log("WARNING: Input CSV is empty")
         return
 
+    if "id" in df.columns:
+        id_series = df["id"].fillna("").astype(str).str.strip()
+        has_real_id = id_series != ""
+
+        deduped_with_id = df.loc[has_real_id].drop_duplicates(
+            subset=["id"], keep="first"
+        )
+        rows_without_id = df.loc[~has_real_id]
+
+        before_dedup = len(df)
+        df = pd.concat([deduped_with_id, rows_without_id], ignore_index=True)
+        removed_duplicates = before_dedup - len(df)
+        log(
+            f"After id deduplication: {len(df)} jobs (removed {removed_duplicates} duplicates; kept empty ids)"
+        )
+    else:
+        log("WARNING: No 'id' column found; skipping deduplication")
+
     # Apply filters
     log("Applying filters...")
 
@@ -80,7 +85,9 @@ def filter_linkedin_jobs(input_file: str, output_file: str):
     log(f"After title exclusion filter: {len(df_filtered)} jobs")
 
     # Filter 1.5: Remove rows whose company contains an exclusion term
-    df_filtered = df_filtered[~df_filtered["company"].apply(has_company_exclusion_term)].copy()
+    df_filtered = df_filtered[
+        ~df_filtered["company"].apply(has_company_exclusion_term)
+    ].copy()
     log(f"After company exclusion filter: {len(df_filtered)} jobs")
 
     # Filter 2: Keep only allowed job levels from constants
@@ -98,8 +105,15 @@ def filter_linkedin_jobs(input_file: str, output_file: str):
     log("Checking German language requirements...")
     keep_rows = []
     for row_number, (idx, row) in enumerate(df_filtered.iterrows(), start=1):
-        if has_german_requirement(row["description"]):
-            log(f"  ❌ Skipping row {row_number}: German language required")
+        description = row.get("description", "")
+        if pd.isna(description):
+            description = ""
+        if has_german_requirement(description):
+            match = GERMAN_REGEX.search(description)
+            matched_text = (
+                match.group(0).strip().replace("\n", " ") if match else "(no match)"
+            )
+            log(f"  ❌ Skipping row {row_number} ({matched_text})")
         else:
             log(f"  ✅ Keeping row {row_number}")
             keep_rows.append(idx)
@@ -107,16 +121,7 @@ def filter_linkedin_jobs(input_file: str, output_file: str):
     df_filtered = df_filtered.loc[keep_rows].copy()
     log(f"After German filter: {len(df_filtered)} jobs")
 
-    columns_to_keep = [
-        "job_level",
-        "title",
-        "date_posted",
-        "company",
-        "company_industry",
-        "job_url",
-    ]
-
-    df_output = df_filtered[columns_to_keep].reset_index(drop=True)
+    df_output = df_filtered[LINKEDIN_AFTER_FILTER_COLUMNS].reset_index(drop=True)
     job_level_order = {
         "entry level": 0,
         "mid-senior level": 1,
@@ -141,7 +146,7 @@ def filter_linkedin_jobs(input_file: str, output_file: str):
 
 
 if __name__ == "__main__":
-    input_csv = "job_spy_linkedin_raw.csv"
-    output_csv = "output/job_spy_linkedin_filtered.csv"
+    input_csv = LINKEDIN_INPUT_FILE
+    output_csv = LINKEDIN_FILTERED_FILE
 
     filter_linkedin_jobs(input_csv, output_csv)

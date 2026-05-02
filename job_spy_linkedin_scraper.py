@@ -1,34 +1,9 @@
 import csv
+import os
 import pandas as pd
 from jobspy import scrape_jobs
-
-SEARCH_TERMS = [
-    "software engineer",
-    "software developer",
-    "software entwickler",
-    "software entwicklung",
-    "full stack developer",
-    "backend developer",
-    "frontend developer",
-]
-
-LOCATION = "Munich, Germany"
-DISTANCE_MILES = 31
-HOURS_OLD = 48
-
-OUTPUT_COLUMNS = [
-    "title",
-    "description",
-    "job_level",
-    "company_industry",
-    "date_posted",
-    "job_url",
-    "company",
-    "location",
-    "job_type",
-]
-
-OUTPUT_FILE = "job_spy_linkedin_raw.csv"
+from settings import DISTANCE_MILES, HOURS_OLD, LOCATION, SEARCH_TERMS, RESULTS_WANTED
+from constants import LINKEDIN_INPUT_FILE, LINKEDIN_OUTPUT_COLUMNS
 
 
 def search_jobs(search_term: str) -> pd.DataFrame:
@@ -39,7 +14,7 @@ def search_jobs(search_term: str) -> pd.DataFrame:
             location=LOCATION,
             distance=DISTANCE_MILES,
             hours_old=HOURS_OLD,
-            results_wanted=100,
+            results_wanted=RESULTS_WANTED,
             linkedin_fetch_description=True,
             verbose=1,
         )
@@ -50,7 +25,7 @@ def search_jobs(search_term: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def main():
+def scrape_linkedin_jobs_to_csv(output_file: str):
     all_results = []
 
     for term in SEARCH_TERMS:
@@ -63,19 +38,22 @@ def main():
         return
 
     combined = pd.concat(all_results, ignore_index=True)
-    before = len(combined)
-    combined.drop_duplicates(subset=["job_url"], inplace=True)
-    print(
-        f"\nTotal unique jobs: {len(combined)} (removed {before - len(combined)} duplicates)"
-    )
 
-    available_cols = [c for c in OUTPUT_COLUMNS if c in combined.columns]
+    available_cols = [c for c in LINKEDIN_OUTPUT_COLUMNS if c in combined.columns]
     output = combined[available_cols].copy()
 
+    output_dir = os.path.dirname(output_file)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
     output.to_csv(
-        OUTPUT_FILE, quoting=csv.QUOTE_NONNUMERIC, escapechar="\\", index=False
+        output_file, quoting=csv.QUOTE_NONNUMERIC, escapechar="\\", index=False
     )
-    print(f"Saved to '{OUTPUT_FILE}'")
+    print(f"Saved to '{output_file}'")
+
+
+def main():
+    scrape_linkedin_jobs_to_csv(LINKEDIN_INPUT_FILE)
 
 
 if __name__ == "__main__":
