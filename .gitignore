@@ -34,3 +34,15 @@ Thumbs.db
 
 # Project data exports
 *.csv
+
+# Ignore full subprojects
+jobscraper-dashboard/
+
+# FastAPI local config and runtime files
+.env
+.env.*
+!.env.example
+*.sqlite3
+*.db
+*.log
+logs/
