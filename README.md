@@ -11,6 +11,7 @@ JobScraper is a small pipeline to clean job-export CSVs (Stepstone, Glassdoor, X
 - `column_utils.py`: auto-detects CSV columns using content and name keywords.
 - `german_filter.py`: fetches job pages from cleaned CSVs and applies compiled regex patterns from `constants.py` to detect German-language requirements; it produces apply-ready recent CSVs with rows that do NOT require German.
 - `main.py`: orchestrates the full pipeline. Runs the shared cleaner for each enabled source, then applies `german_filter.py` only for sites whose `*_USE_GERMAN_FILTER` flag is enabled in `constants.py`, and moves final recent files into `output/`.
+- `main_linkedin.py`: orchestrates the LinkedIn jobspy pipeline.
 
 ## Requirements
 
@@ -27,7 +28,7 @@ pip install pandas requests
 
 ## Configuration
 
-All settings live in `constants.py`, with user-tunable switches moved to `settings.py`:
+All settings live in `constants.py`, with user-tunable switches split by pipeline:
 
 - Input filenames per source (`STEPSTONE_INPUT_FILE`, `XING_INPUT_FILE`, etc.)
 - Final output folder: `OUTPUT_DIR`
@@ -37,6 +38,8 @@ All settings live in `constants.py`, with user-tunable switches moved to `settin
 - `POSITION_EXCLUSION_TERMS` lists senior/irrelevant roles to drop
 - `GERMAN_REQUIRED_PATTERNS` contains regexes used by `german_filter.py` to detect German-language requirements
 - `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING` toggles control which cleaners `main.py` runs
+- `settings_general.py` holds the general scraper toggles and shared timing window
+- `settings_jobspy.py` holds the LinkedIn jobspy search and filter parameters
 
 **Per-site configuration in `SITE_PIPELINE_CONFIGS` dictionary:**
 - `sort_columns` — which columns to sort by (e.g., stepstone sorts by `["match", "_date_age_days"]`)
@@ -44,7 +47,9 @@ All settings live in `constants.py`, with user-tunable switches moved to `settin
 - `categorical_columns` — site-specific categorical transformations (e.g., stepstone's match levels: "per", "gut")
 - All existing config keys for column detection, URL filtering, date parsing, etc.
 
-Settings from `settings.py`: `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING`, `GLASSDOOR_USE_GERMAN_FILTER`, `STEPSTONE_USE_GERMAN_FILTER`, `XING_USE_GERMAN_FILTER`, and `LAST_DAYS`
+Settings from `settings_general.py`: `PROCESS_STEPSTONE`, `PROCESS_GLASSDOOR`, `PROCESS_XING`, `GLASSDOOR_USE_GERMAN_FILTER`, `STEPSTONE_USE_GERMAN_FILTER`, `XING_USE_GERMAN_FILTER`, and `LAST_DAYS`
+
+Settings from `settings_jobspy.py`: `SEARCH_TERMS`, `LINKEDIN_JOB_LEVEL_ALLOWED_VALUES`, `LOCATION`, `DISTANCE_MILES`, `HOURS_OLD`, and `RESULTS_WANTED`
 
 ## How to run
 

@@ -2,7 +2,13 @@ import csv
 import os
 import pandas as pd
 from jobspy import scrape_jobs
-from settings import DISTANCE_MILES, HOURS_OLD, LOCATION, SEARCH_TERMS, RESULTS_WANTED
+from settings_jobspy import (
+    DISTANCE_MILES,
+    HOURS_OLD,
+    LOCATION,
+    RESULTS_WANTED,
+    SEARCH_TERMS,
+)
 from constants import LINKEDIN_INPUT_FILE, LINKEDIN_OUTPUT_COLUMNS
 
 

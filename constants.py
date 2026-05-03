@@ -1,15 +1,15 @@
 import os
 
-from settings import (
+from settings_general import (
     GLASSDOOR_USE_GERMAN_FILTER,
     LAST_DAYS,
-    LINKEDIN_JOB_LEVEL_ALLOWED_VALUES,
     PROCESS_GLASSDOOR,
     PROCESS_STEPSTONE,
     PROCESS_XING,
     STEPSTONE_USE_GERMAN_FILTER,
     XING_USE_GERMAN_FILTER,
 )
+from settings_jobspy import LINKEDIN_JOB_LEVEL_ALLOWED_VALUES
 
 INPUT_DIR = "input"
 OUTPUT_DIR = "output"
@@ -232,6 +232,8 @@ GERMAN_REQUIRED_PATTERNS = [
     r"\bdeutsch(?:-|[ \-])?und[\s\S]{0,40}\benglisch(?:kenntnisse)?\b",
     # Broad / non-strict German wording
     r"\b(?:gut|gute|sehr gut|sehr gute|ausgezeichnet|ausgezeichnete|exzellent|exzellente|solide|fundiert|fundierte|sicher|sichere|kommunikationssicher|kommunikationssichere)\s+deutschkenntnisse\b",
+    r"\bguten\s+deutschkenntnisse\b",
+    r"\bsehr\s+guten\s+deutschkenntnisse\b",
     r"\bdeutschkenntnisse\b.{0,30}\b(?:gut|gute|sehr gut|sehr gute|ausgezeichnet|ausgezeichnete|exzellent|exzellente|solide|fundiert|fundierte|sicher|sichere|kommunikationssicher|kommunikationssichere)\b",
     r"\b(?:gut|gute|sehr gut|sehr gute)\s+deutsch\b",
     r"\bdeutsch\b.{0,20}\b(?:gut|gute|sehr gut|sehr gute)\b",
