@@ -1,19 +1,17 @@
-import io
 import json
 import logging
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 
+from app.config import LINKEDIN_RESULTS_FILE
 from .settings import LinkedInScraperSettings
 from .scraper import run_scraper
 from .filter import run_filter
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-_last_results: pd.DataFrame | None = None
 
 
 def _dataframe_to_records(df: pd.DataFrame) -> list[dict]:
@@ -22,7 +20,6 @@ def _dataframe_to_records(df: pd.DataFrame) -> list[dict]:
 
 @router.post("/linkedin")
 def post_linkedin(settings: LinkedInScraperSettings):
-    global _last_results
     logger.info(
         "POST /linkedin started | terms=%d location=%s hours_old=%s results_wanted=%s",
         len(settings.SEARCH_TERMS),
@@ -35,7 +32,8 @@ def post_linkedin(settings: LinkedInScraperSettings):
         logger.info("Scraper returned %d rows", len(df))
         cleaned = run_filter(df, settings)
         logger.info("Filter returned %d rows", len(cleaned))
-        _last_results = cleaned
+        cleaned.to_csv(LINKEDIN_RESULTS_FILE, index=False)
+        logger.info("Saved latest LinkedIn results to %s", LINKEDIN_RESULTS_FILE)
         return _dataframe_to_records(cleaned)
     except Exception as e:
         logger.exception("POST /linkedin failed with unhandled exception")
@@ -45,13 +43,13 @@ def post_linkedin(settings: LinkedInScraperSettings):
 @router.get("/linkedin/export")
 def get_linkedin_export():
     logger.info("GET /linkedin/export called")
-    if _last_results is None or _last_results.empty:
+    if not LINKEDIN_RESULTS_FILE.exists() or LINKEDIN_RESULTS_FILE.stat().st_size == 0:
         logger.warning("Export requested but no results are available")
         raise HTTPException(status_code=404, detail="No results available")
 
-    stream = io.StringIO()
-    _last_results.to_csv(stream, index=False)
-    stream.seek(0)
-    headers = {"Content-Disposition": "attachment; filename=linkedin_results.csv"}
-    logger.info("Exporting %d rows", len(_last_results))
-    return StreamingResponse(stream, media_type="text/csv", headers=headers)
+    logger.info("Exporting results from %s", LINKEDIN_RESULTS_FILE)
+    return FileResponse(
+        path=LINKEDIN_RESULTS_FILE,
+        media_type="text/csv",
+        filename="linkedin_results.csv",
+    )
