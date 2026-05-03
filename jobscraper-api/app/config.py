@@ -13,7 +13,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
 CORS_ORIGINS = _parse_csv_env(
     "CORS_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000",
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:4200,http://127.0.0.1:4200",
 )
 
 CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "true").lower() in {

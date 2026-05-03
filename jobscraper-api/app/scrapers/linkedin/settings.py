@@ -25,3 +25,4 @@ class LinkedInScraperSettings(BaseModel):
     DISTANCE_MILES: int = 31
     HOURS_OLD: int = 24
     RESULTS_WANTED: int = 50
+    ALLOW_DEUTSCH: bool = True

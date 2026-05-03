@@ -5,6 +5,7 @@ from app.constants import (
     COMPANY_EXCLUSION_TERMS,
     LINKEDIN_AFTER_FILTER_COLUMNS,
 )
+from app.scrapers.linkedin import settings
 from app.utils.german_detector import has_german_requirement
 
 
@@ -42,23 +43,24 @@ def run_filter(df: pd.DataFrame, settings) -> pd.DataFrame:
 
     allowed_job_levels = {
         value.lower() for value in settings.LINKEDIN_JOB_LEVEL_ALLOWED_VALUES
-    }
+    } | {"not applicable"}
     df_filtered = df_filtered[
         df_filtered["job_level"].fillna("").str.lower().isin(allowed_job_levels)
     ].copy()
 
     df_filtered = df_filtered[df_filtered["job_type"] == "fulltime"].copy()
 
-    keep_rows = []
-    for idx, row in df_filtered.iterrows():
-        description = row.get("description", "")
-        if pd.isna(description):
-            description = ""
-        if has_german_requirement(description):
-            continue
-        keep_rows.append(idx)
+    if not settings.ALLOW_DEUTSCH:
+        keep_rows = []
+        for idx, row in df_filtered.iterrows():
+            description = row.get("description", "")
+            if pd.isna(description):
+                description = ""
+            if has_german_requirement(description):
+                continue
+            keep_rows.append(idx)
+        df_filtered = df_filtered.loc[keep_rows].copy()
 
-    df_filtered = df_filtered.loc[keep_rows].copy()
     df_output = df_filtered[LINKEDIN_AFTER_FILTER_COLUMNS].reset_index(drop=True)
     job_level_order = {"entry level": 0, "mid-senior level": 1}
     df_output["_job_level_order"] = (
