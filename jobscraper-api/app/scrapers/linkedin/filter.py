@@ -1,8 +1,6 @@
 import pandas as pd
 
 from app.constants import (
-    POSITION_EXCLUSION_TERMS,
-    COMPANY_EXCLUSION_TERMS,
     LINKEDIN_AFTER_FILTER_COLUMNS,
 )
 from app.scrapers.linkedin import settings
@@ -24,14 +22,14 @@ def run_filter(df: pd.DataFrame, settings) -> pd.DataFrame:
 
     def has_exclusion_term(title: str) -> bool:
         title_lower = str(title).lower()
-        for keyword in POSITION_EXCLUSION_TERMS:
+        for keyword in settings.POSITION_EXCLUSION_TERMS:
             if keyword.lower() in title_lower:
                 return True
         return False
 
     def has_company_exclusion_term(company: str) -> bool:
         company_lower = str(company).lower()
-        for keyword in COMPANY_EXCLUSION_TERMS:
+        for keyword in settings.COMPANY_EXCLUSION_TERMS:
             if keyword.lower() in company_lower:
                 return True
         return False

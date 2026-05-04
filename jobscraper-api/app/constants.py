@@ -11,12 +11,11 @@ XING_USE_GERMAN_FILTER = True
 
 LAST_DAYS = 2
 
-# LinkedIn job level allowed values (preserved from settings_jobspy)
-LINKEDIN_JOB_LEVEL_ALLOWED_VALUES = [
-    "entry level",
-    "mid-senior level",
-    "not applicable",
-]
+# LINKEDIN_JOB_LEVEL_ALLOWED_VALUES = [
+#     "entry level",
+#     "mid-senior level",
+#     "not applicable",
+# ]
 
 INPUT_DIR = "input"
 OUTPUT_DIR = "output"
@@ -92,42 +91,6 @@ LINKEDIN_AFTER_FILTER_COLUMNS = [
     "company",
     "company_industry",
     "job_url",
-]
-
-POSITION_EXCLUSION_TERMS = [
-    "Senior",
-    "Lead",
-    "Professor",
-    "Projektleiter",
-    "Manager",
-    "ERP",
-    "Defence",
-    "Architect",
-    "architekt",
-    "Working Student",
-    "Werkstudent",
-    "Internship",
-    "Praktikum",
-    "Head of",
-    "Leiter",
-    "Teamleiter",
-    "Geschäftsführer",
-    "Chief",
-    "Masterthesis",
-    "Masterarbeit",
-    "student assistant",
-    "Embedded Software Engineer",
-    "Site Reliability Engineer",
-    "Staff Frontend Developer",
-]
-
-COMPANY_EXCLUSION_TERMS = [
-    "Helsing",
-    "Ferchau",
-    "check24",
-    "Bending Spoons",
-    "BMW Group",
-    "NVIDIA",
 ]
 
 DEUTSCH_VALUE = "Deutsch"

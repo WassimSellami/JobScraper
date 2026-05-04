@@ -3,17 +3,7 @@ from typing import List
 
 
 class LinkedInScraperSettings(BaseModel):
-    SEARCH_TERMS: List[str] = [
-        "software engineer",
-        "software developer",
-        "software entwickler",
-        "software entwicklung",
-        "full stack developer",
-        "web developer",
-        "web entwickler",
-        "backend developer",
-        "frontend developer",
-    ]
+    SEARCH_TERMS: List[str] = []
 
     LINKEDIN_JOB_LEVEL_ALLOWED_VALUES: List[str] = [
         "entry level",
@@ -21,8 +11,11 @@ class LinkedInScraperSettings(BaseModel):
         "not applicable",
     ]
 
+    POSITION_EXCLUSION_TERMS: List[str] = []
+    COMPANY_EXCLUSION_TERMS: List[str] = []
+
     LOCATION: str = "Munich, Germany"
     DISTANCE_MILES: int = 31
     HOURS_OLD: int = 24
-    RESULTS_WANTED: int = 50
-    ALLOW_DEUTSCH: bool = True
+    RESULTS_WANTED: int = 10
+    ALLOW_DEUTSCH: bool = False
