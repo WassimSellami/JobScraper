@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .autocomplete import router as autocomplete_router
 from .config import APP_NAME, CORS_ALLOW_CREDENTIALS, CORS_ORIGINS, LOG_LEVEL
 from .scrapers.linkedin import router as linkedin_router
 
@@ -26,6 +27,7 @@ else:
     logger.warning("CORS is disabled because no CORS_ORIGINS were configured")
 
 app.include_router(linkedin_router.router, prefix="/api/scrape")
+app.include_router(autocomplete_router.router, prefix="/api/autocomplete")
 
 
 @app.get("/health")

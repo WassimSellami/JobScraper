@@ -18,6 +18,7 @@ Endpoints:
 
 - POST /api/scrape/linkedin — run scraper and filter, returns JSON list of jobs
 - GET /api/scrape/linkedin/export — download last results as CSV
+- GET /api/autocomplete/cities?q=<fragment>&limit=5 — German city autocomplete (returns up to 5 items with city and label)
 
 ## DigitalOcean deployment
 
