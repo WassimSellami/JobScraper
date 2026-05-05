@@ -1,6 +1,4 @@
 import os
-import tempfile
-from pathlib import Path
 
 
 def _parse_csv_env(name: str, default: str) -> list[str]:
@@ -22,10 +20,3 @@ CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "true").lower() in 
     "yes",
     "on",
 }
-
-RESULTS_DIR = Path(
-    os.getenv("RESULTS_DIR", str(Path(tempfile.gettempdir()) / "jobscraper-api"))
-)
-RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-
-LINKEDIN_RESULTS_FILE = RESULTS_DIR / "linkedin_results.csv"

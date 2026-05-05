@@ -91,7 +91,31 @@ LINKEDIN_AFTER_FILTER_COLUMNS = [
     "company",
     "company_industry",
     "job_url",
+    "job_board",
 ]
+
+INDEED_OUTPUT_COLUMNS = [
+    "title",
+    "description",
+    "company_industry",
+    "date_posted",
+    "job_url",
+    "company",
+    "location",
+    "job_type",
+]
+
+INDEED_AFTER_FILTER_COLUMNS = [
+    "title",
+    "date_posted",
+    "company",
+    "company_industry",
+    "job_url",
+    "job_board",
+]
+# Canonical job_board values used in outputs
+JOB_BOARD_INDEED = "Indeed"
+JOB_BOARD_LINKEDIN = "Linkedin"
 
 DEUTSCH_VALUE = "Deutsch"
 
