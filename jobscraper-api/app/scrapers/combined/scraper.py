@@ -27,18 +27,38 @@ def scrape_all_sites(settings: CombinedScraperSettings) -> pd.DataFrame:
     requested_sites = normalize_sites(settings.sites) or ["linkedin", "indeed"]
     site_name = requested_sites if len(requested_sites) > 1 else requested_sites[0]
 
-    raw_df = scrape_jobs(
-        site_name=site_name,
-        search_term=" OR ".join(term for term in settings.SEARCH_TERMS if term) or None,
-        location=settings.LOCATION,
-        distance=settings.DISTANCE_MILES,
-        hours_old=settings.HOURS_OLD,
-        results_wanted=settings.RESULTS_WANTED,
-        linkedin_fetch_description=True,
-        country_indeed="germany",
-        verbose=0,
-    )
-    return raw_df
+    search_terms = [t for t in settings.SEARCH_TERMS if t] or [None]
+    frames: list[pd.DataFrame] = []
+
+    for term in search_terms:
+        logger.info("Scraping term: %r", term)
+        try:
+            df = scrape_jobs(
+                site_name=site_name,
+                search_term=term,
+                location=settings.LOCATION,
+                distance=settings.DISTANCE_MILES,
+                hours_old=settings.HOURS_OLD,
+                results_wanted=settings.RESULTS_WANTED,
+                linkedin_fetch_description=True,
+                country_indeed="germany",
+                verbose=0,
+            )
+            if df is not None and not df.empty:
+                df["_search_term"] = term  # optional: track which term produced the row
+                frames.append(df)
+        except Exception:
+            logger.exception("Failed scraping term %r", term)
+
+    if not frames:
+        return pd.DataFrame()
+
+    combined = pd.concat(frames, ignore_index=True)
+    # Deduplicate by job_url if available, keeping first occurrence
+    if "job_url" in combined.columns:
+        combined = combined.drop_duplicates(subset=["job_url"], keep="first")
+
+    return combined
 
 
 def split_by_site(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -51,13 +71,10 @@ def split_by_site(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         indeed_df = df.loc[site_series == "indeed"].copy()
         return linkedin_df, indeed_df
 
-    # Fallback for older payloads: LinkedIn rows usually expose job_level.
     job_level_series = (
         df["job_level"]
         if "job_level" in df.columns
         else pd.Series(index=df.index, dtype=object)
     )
     linkedin_mask = job_level_series.notna()
-    linkedin_df = df.loc[linkedin_mask].copy()
-    indeed_df = df.loc[~linkedin_mask].copy()
-    return linkedin_df, indeed_df
+    return df.loc[linkedin_mask].copy(), df.loc[~linkedin_mask].copy()
