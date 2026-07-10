@@ -1,0 +1,23 @@
+{
+  "9feabcc0ee004bf88ffdcf321b5da530": {
+    "allow_deutsch": false,
+    "distance_miles": 31,
+    "excluded_companies": [
+      "string"
+    ],
+    "excluded_positions": [
+      "string"
+    ],
+    "hours_old": 24,
+    "job_levels": [
+      "string"
+    ],
+    "location": "Munich, Germany",
+    "search_terms": [
+      "string"
+    ],
+    "sites": [
+      "string"
+    ]
+  }
+}

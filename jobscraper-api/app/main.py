@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .autocomplete import router as autocomplete_router
 from .config import APP_NAME, CORS_ALLOW_CREDENTIALS, CORS_ORIGINS, LOG_LEVEL
 from .scrapers.combined import router as combined_router
+from .user_profiles_router import router as user_profiles_router
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -28,6 +29,7 @@ else:
 
 app.include_router(autocomplete_router.router, prefix="/api/autocomplete")
 app.include_router(combined_router.router, prefix="/api/scrape")
+app.include_router(user_profiles_router, prefix="/api/user-profiles")
 
 
 @app.get("/health")

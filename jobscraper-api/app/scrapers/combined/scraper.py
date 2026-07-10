@@ -3,7 +3,8 @@ from typing import List
 
 import pandas as pd
 
-from .settings import CombinedScraperSettings
+from ...constants import RESULTS_WANTED_DEFAULT
+from ...user_profiles import UserProfile
 
 logger = logging.getLogger(__name__)
 
@@ -17,17 +18,17 @@ def normalize_sites(sites: List[str]) -> list[str]:
     return normalized
 
 
-def scrape_all_sites(settings: CombinedScraperSettings) -> pd.DataFrame:
+def scrape_all_sites(profile: UserProfile) -> pd.DataFrame:
     try:
         from jobspy import scrape_jobs
     except Exception:
         logger.exception("Failed to import jobspy.scrape_jobs")
         raise
 
-    requested_sites = normalize_sites(settings.sites) or ["linkedin", "indeed"]
+    requested_sites = normalize_sites(profile.sites) or ["linkedin", "indeed"]
     site_name = requested_sites if len(requested_sites) > 1 else requested_sites[0]
 
-    search_terms = [t for t in settings.SEARCH_TERMS if t] or [None]
+    search_terms = [t for t in profile.search_terms if t] or [None]
     frames: list[pd.DataFrame] = []
 
     for term in search_terms:
@@ -36,10 +37,10 @@ def scrape_all_sites(settings: CombinedScraperSettings) -> pd.DataFrame:
             df = scrape_jobs(
                 site_name=site_name,
                 search_term=term,
-                location=settings.LOCATION,
-                distance=settings.DISTANCE_MILES,
-                hours_old=settings.HOURS_OLD,
-                results_wanted=settings.RESULTS_WANTED,
+                location=profile.location,
+                distance=profile.distance_miles,
+                hours_old=profile.hours_old,
+                results_wanted=RESULTS_WANTED_DEFAULT,
                 linkedin_fetch_description=True,
                 country_indeed="germany",
                 verbose=0,

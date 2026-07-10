@@ -6,9 +6,8 @@ from app.constants import (
     JOB_BOARD_LINKEDIN,
     LINKEDIN_AFTER_FILTER_COLUMNS,
 )
+from app.user_profiles import UserProfile
 from app.utils.german_detector import has_german_requirement
-
-from .settings import CombinedScraperSettings
 
 
 def _dedupe_by_id_if_present(df: pd.DataFrame) -> pd.DataFrame:
@@ -23,18 +22,18 @@ def _dedupe_by_id_if_present(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _apply_common_exclusions(
-    df: pd.DataFrame, settings: CombinedScraperSettings
+    df: pd.DataFrame, profile: UserProfile
 ) -> pd.DataFrame:
     def has_exclusion_term(title: str) -> bool:
         title_lower = str(title).lower()
-        for keyword in settings.POSITION_EXCLUSION_TERMS:
+        for keyword in profile.excluded_positions:
             if keyword.lower() in title_lower:
                 return True
         return False
 
     def has_company_exclusion_term(company: str) -> bool:
         company_lower = str(company).lower()
-        for keyword in settings.COMPANY_EXCLUSION_TERMS:
+        for keyword in profile.excluded_companies:
             if keyword.lower() in company_lower:
                 return True
         return False
@@ -47,9 +46,9 @@ def _apply_common_exclusions(
 
 
 def _apply_german_filter(
-    df: pd.DataFrame, settings: CombinedScraperSettings
+    df: pd.DataFrame, profile: UserProfile
 ) -> pd.DataFrame:
-    if settings.ALLOW_DEUTSCH:
+    if profile.allow_deutsch:
         return df
 
     keep_rows = []
@@ -65,22 +64,20 @@ def _apply_german_filter(
 
 
 def filter_linkedin(
-    df: pd.DataFrame, settings: CombinedScraperSettings
+    df: pd.DataFrame, profile: UserProfile
 ) -> pd.DataFrame:
     if df is None or df.empty:
         return pd.DataFrame(columns=LINKEDIN_AFTER_FILTER_COLUMNS)
 
     df = _dedupe_by_id_if_present(df)
-    df = _apply_common_exclusions(df, settings)
+    df = _apply_common_exclusions(df, profile)
 
-    allowed_job_levels = {
-        value.lower() for value in settings.LINKEDIN_JOB_LEVEL_ALLOWED_VALUES
-    } | {"not applicable"}
+    allowed_job_levels = {value.lower() for value in profile.job_levels}
     df = df[df["job_level"].fillna("").str.lower().isin(allowed_job_levels)].copy()
     df = df[df["job_type"] == "fulltime"].copy()
 
     df["job_board"] = JOB_BOARD_LINKEDIN
-    df = _apply_german_filter(df, settings)
+    df = _apply_german_filter(df, profile)
 
     df_output = df[LINKEDIN_AFTER_FILTER_COLUMNS].reset_index(drop=True)
     job_level_order = {"entry level": 0, "mid-senior level": 1}
@@ -97,17 +94,17 @@ def filter_linkedin(
     return df_output
 
 
-def filter_indeed(df: pd.DataFrame, settings: CombinedScraperSettings) -> pd.DataFrame:
+def filter_indeed(df: pd.DataFrame, profile: UserProfile) -> pd.DataFrame:
     if df is None or df.empty:
         return pd.DataFrame(columns=INDEED_AFTER_FILTER_COLUMNS)
 
     df = _dedupe_by_id_if_present(df)
-    df = _apply_common_exclusions(df, settings)
+    df = _apply_common_exclusions(df, profile)
 
     # Indeed does not use LinkedIn-specific job_level filtering.
     df = df[df["job_type"] == "fulltime"].copy()
 
-    df = _apply_german_filter(df, settings)
+    df = _apply_german_filter(df, profile)
     df["job_board"] = JOB_BOARD_INDEED
 
     df_output = df[INDEED_AFTER_FILTER_COLUMNS].reset_index(drop=True)

@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from .filter import filter_indeed, filter_linkedin
 from .scraper import normalize_sites, scrape_all_sites, split_by_site
-from .settings import CombinedScraperSettings
+from ...user_profiles import UserProfile
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -17,20 +17,19 @@ def _dataframe_to_records(df: pd.DataFrame) -> list[dict]:
 
 
 @router.post("/all")
-def post_all(settings: CombinedScraperSettings):
+def post_all(profile: UserProfile):
     logger.info(
-        "POST /all started | terms=%d location=%s hours_old=%s results_wanted=%s sites=%s",
-        len(settings.SEARCH_TERMS),
-        settings.LOCATION,
-        settings.HOURS_OLD,
-        settings.RESULTS_WANTED,
-        settings.sites,
+        "POST /all started | terms=%d location=%s hours_old=%s sites=%s",
+        len(profile.search_terms),
+        profile.location,
+        profile.hours_old,
+        profile.sites,
     )
 
-    requested_sites = normalize_sites(settings.sites) or ["linkedin", "indeed"]
+    requested_sites = normalize_sites(profile.sites) or ["linkedin", "indeed"]
 
     try:
-        raw_df = scrape_all_sites(settings)
+        raw_df = scrape_all_sites(profile)
         logger.info("Combined scraper returned %d rows", len(raw_df))
     except Exception:
         logger.exception("Combined scrape failed")
@@ -46,7 +45,7 @@ def post_all(settings: CombinedScraperSettings):
 
     try:
         logger.info("LinkedIn subset rows=%d", len(linkedin_df))
-        ln_clean = filter_linkedin(linkedin_df, settings)
+        ln_clean = filter_linkedin(linkedin_df, profile)
         logger.info("LinkedIn filter returned %d rows", len(ln_clean))
         results.append(ln_clean)
     except Exception:
@@ -54,7 +53,7 @@ def post_all(settings: CombinedScraperSettings):
 
     try:
         logger.info("Indeed subset rows=%d", len(indeed_df))
-        id_clean = filter_indeed(indeed_df, settings)
+        id_clean = filter_indeed(indeed_df, profile)
         logger.info("Indeed filter returned %d rows", len(id_clean))
         results.append(id_clean)
     except Exception:
