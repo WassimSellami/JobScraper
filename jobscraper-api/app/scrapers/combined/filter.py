@@ -51,7 +51,7 @@ def _apply_search_term_filter(df: pd.DataFrame, profile: UserProfile) -> pd.Data
     searchable_columns = [
         column_name
         for column_name in [
-            "search_term",
+            "_search_term"
         ]
         if column_name in df.columns
     ]
