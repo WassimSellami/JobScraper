@@ -19,11 +19,7 @@ class UserProfile(BaseModel):
         ]
     )
     excluded_companies: list[str] = Field(default_factory=list)
-    sites: list[str] = Field(default_factory=lambda: ["linkedin", "indeed"])
     excluded_positions: list[str] = Field(default_factory=list)
-    location: str = "Munich, Germany"
-    distance_miles: int = 31
-    hours_old: int = 24
     allow_deutsch: bool = False
 
 
@@ -42,6 +38,13 @@ class UserProfileStore:
 
     def list_profile_ids(self) -> list[str]:
         return sorted(self._read_all().keys())
+
+    def list_profiles(self) -> list[tuple[str, UserProfile]]:
+        raw_profiles = self._read_all()
+        return [
+            (profile_id, UserProfile.model_validate(profile_data))
+            for profile_id, profile_data in raw_profiles.items()
+        ]
 
     def get_profile(self, profile_id: str) -> UserProfile | None:
         raw_profiles = self._read_all()

@@ -15,8 +15,8 @@ uvicorn app.main:app --reload
 ```
 
 Endpoints:
- - POST /api/scrape/all — run LinkedIn and Indeed in one scrape call and return combined JSON
- - Request body can include `sites` (default: ["linkedin", "indeed"]) to choose boards for the single scrape call
+ - POST /api/scrape/all — read LinkedIn jobs from the shared CSV, apply the user profile filters, and return JSON
+ - The endpoint is LinkedIn-only for now and uses `app/data/shared_jobs.csv` as its source
 This repo is ready to run as a DigitalOcean App Platform web service.
 
 Required environment variables:

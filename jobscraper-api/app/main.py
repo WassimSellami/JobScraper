@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .autocomplete import router as autocomplete_router
 from .config import APP_NAME, CORS_ALLOW_CREDENTIALS, CORS_ORIGINS, LOG_LEVEL
 from .scrapers.combined import router as combined_router
+from .scrapers.combined.background import ProfileScrapeScheduler
 from .user_profiles_router import router as user_profiles_router
 
 logging.basicConfig(
@@ -15,6 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title=APP_NAME)
+profile_scrape_scheduler = ProfileScrapeScheduler()
 
 if CORS_ORIGINS:
     app.add_middleware(
@@ -30,6 +32,16 @@ else:
 app.include_router(autocomplete_router.router, prefix="/api/autocomplete")
 app.include_router(combined_router.router, prefix="/api/scrape")
 app.include_router(user_profiles_router, prefix="/api/user-profiles")
+
+
+@app.on_event("startup")
+async def _start_profile_scrape_scheduler():
+    profile_scrape_scheduler.start()
+
+
+@app.on_event("shutdown")
+async def _stop_profile_scrape_scheduler():
+    await profile_scrape_scheduler.stop()
 
 
 @app.get("/health")

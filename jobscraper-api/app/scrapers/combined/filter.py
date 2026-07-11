@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 
 from app.constants import (
@@ -8,17 +10,6 @@ from app.constants import (
 )
 from app.user_profiles import UserProfile
 from app.utils.german_detector import has_german_requirement
-
-
-def _dedupe_by_id_if_present(df: pd.DataFrame) -> pd.DataFrame:
-    if "id" not in df.columns:
-        return df
-
-    id_series = df["id"].fillna("").astype(str).str.strip()
-    has_real_id = id_series != ""
-    deduped_with_id = df.loc[has_real_id].drop_duplicates(subset=["id"], keep="first")
-    rows_without_id = df.loc[~has_real_id]
-    return pd.concat([deduped_with_id, rows_without_id], ignore_index=True)
 
 
 def _apply_common_exclusions(
@@ -38,11 +29,41 @@ def _apply_common_exclusions(
                 return True
         return False
 
-    df_filtered = df[~df["title"].apply(has_exclusion_term)].copy()
-    df_filtered = df_filtered[
-        ~df_filtered["company"].apply(has_company_exclusion_term)
-    ].copy()
+    df_filtered = df.copy()
+    if "title" in df_filtered.columns:
+        df_filtered = df_filtered[~df_filtered["title"].apply(has_exclusion_term)].copy()
+    if "company" in df_filtered.columns:
+        df_filtered = df_filtered[
+            ~df_filtered["company"].apply(has_company_exclusion_term)
+        ].copy()
     return df_filtered
+
+
+def _apply_search_term_filter(df: pd.DataFrame, profile: UserProfile) -> pd.DataFrame:
+    search_terms = [
+        str(term).strip()
+        for term in profile.search_terms
+        if str(term).strip()
+    ]
+    if not search_terms:
+        return df
+
+    searchable_columns = [
+        column_name
+        for column_name in [
+            "search_term",
+        ]
+        if column_name in df.columns
+    ]
+    if not searchable_columns:
+        return df
+
+    combined_text = df[searchable_columns].fillna("").astype(str).agg(" ".join, axis=1)
+    search_pattern = "|".join(re.escape(term) for term in search_terms)
+    if not search_pattern:
+        return df
+
+    return df[combined_text.str.contains(search_pattern, case=False, regex=True, na=False)].copy()
 
 
 def _apply_german_filter(
@@ -69,15 +90,22 @@ def filter_linkedin(
     if df is None or df.empty:
         return pd.DataFrame(columns=LINKEDIN_AFTER_FILTER_COLUMNS)
 
-    df = _dedupe_by_id_if_present(df)
+    df = _apply_search_term_filter(df, profile)
     df = _apply_common_exclusions(df, profile)
 
     allowed_job_levels = {value.lower() for value in profile.job_levels}
-    df = df[df["job_level"].fillna("").str.lower().isin(allowed_job_levels)].copy()
-    df = df[df["job_type"] == "fulltime"].copy()
+    if "job_level" in df.columns:
+        df = df[df["job_level"].fillna("").astype(str).str.lower().isin(allowed_job_levels)].copy()
+
+    if "job_type" in df.columns:
+        df = df[df["job_type"].fillna("").astype(str).str.lower() == "fulltime"].copy()
 
     df["job_board"] = JOB_BOARD_LINKEDIN
     df = _apply_german_filter(df, profile)
+
+    missing_columns = [column_name for column_name in LINKEDIN_AFTER_FILTER_COLUMNS if column_name not in df.columns]
+    for column_name in missing_columns:
+        df[column_name] = pd.NA
 
     df_output = df[LINKEDIN_AFTER_FILTER_COLUMNS].reset_index(drop=True)
     job_level_order = {"entry level": 0, "mid-senior level": 1}
@@ -98,7 +126,6 @@ def filter_indeed(df: pd.DataFrame, profile: UserProfile) -> pd.DataFrame:
     if df is None or df.empty:
         return pd.DataFrame(columns=INDEED_AFTER_FILTER_COLUMNS)
 
-    df = _dedupe_by_id_if_present(df)
     df = _apply_common_exclusions(df, profile)
 
     # Indeed does not use LinkedIn-specific job_level filtering.

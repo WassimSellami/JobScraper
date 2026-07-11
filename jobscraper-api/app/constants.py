@@ -1,4 +1,7 @@
 import os
+from pathlib import Path
+
+APP_ROOT = Path(__file__).resolve().parent
 
 # Inlined general settings (previously from settings_general.py)
 PROCESS_GLASSDOOR = True
@@ -11,6 +14,11 @@ XING_USE_GERMAN_FILTER = True
 
 LAST_DAYS = 2
 RESULTS_WANTED_DEFAULT = 15
+SCRAPE_LOCATION = "Munich, Germany"
+SCRAPE_DISTANCE_MILES = 31
+SCRAPE_HOURS_OLD = 1
+PROFILE_SCRAPE_INTERVAL_SECONDS = 50 * 60
+SHARED_JOBS_CSV = str(APP_ROOT / "data" / "shared_jobs.csv")
 
 # LINKEDIN_JOB_LEVEL_ALLOWED_VALUES = [
 #     "entry level",
