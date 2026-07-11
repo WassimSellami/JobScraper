@@ -1,7 +1,6 @@
 {
   "96f4c0a051f44a45991e372bb6e545fa": {
     "allow_deutsch": false,
-    "distance_miles": 31,
     "excluded_companies": [
       "Helsing",
       "Ferchau",
@@ -84,16 +83,21 @@
       "Staff Frontend Developer",
       "Praktikant"
     ],
-    "hours_old": 24,
     "job_levels": [
       "entry level"
     ],
-    "location": "Munich, Germany",
     "search_terms": [
-      "software engineer"
-    ],
-    "sites": [
-      "linkedin"
+      "software engineer",
+      "software developer",
+      "software entwickler",
+      "software entwicklung",
+      "web developer",
+      "web entwickler",
+      "backend developer",
+      "frontend developer",
+      "fullstack",
+      "fullstack engineer",
+      "ai solutions"
     ]
   }
 }
