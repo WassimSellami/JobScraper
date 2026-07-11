@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import json
+import os
 from uuid import uuid4
-from pathlib import Path
-from threading import Lock
-from typing import Any
 
+from dotenv import load_dotenv
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 from pydantic import BaseModel, Field
+
+load_dotenv()
 
 
 class UserProfile(BaseModel):
@@ -27,80 +29,136 @@ class UserProfileRecord(UserProfile):
     profile_id: str
 
 
+_pool: ConnectionPool | None = None
+
+
+def _database_url() -> str:
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if not database_url or "YOUR_NEON" in database_url:
+        raise RuntimeError(
+            "DATABASE_URL is not configured. Add the Neon PostgreSQL connection "
+            "string to jobscraper-api/.env."
+        )
+    return database_url
+
+
+def get_pool() -> ConnectionPool:
+    global _pool
+    if _pool is None:
+        _pool = ConnectionPool(
+            conninfo=_database_url(),
+            min_size=1,
+            max_size=10,
+            kwargs={"row_factory": dict_row},
+            open=False,
+        )
+        _pool.open(wait=True)
+    return _pool
+
+
+def initialize_database() -> None:
+    with get_pool().connection() as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                profile_id TEXT PRIMARY KEY,
+                search_terms TEXT[] NOT NULL DEFAULT ARRAY['software engineer']::TEXT[],
+                job_levels TEXT[] NOT NULL DEFAULT ARRAY[
+                    'entry level', 'mid-senior level', 'not applicable'
+                ]::TEXT[],
+                excluded_companies TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+                excluded_positions TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+                allow_deutsch BOOLEAN NOT NULL DEFAULT FALSE,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+
+
+def close_database() -> None:
+    global _pool
+    if _pool is not None:
+        _pool.close()
+        _pool = None
+
+
 class UserProfileStore:
-    def __init__(self, storage_path: Path | str | None = None):
-        self.storage_path = Path(storage_path or self.default_storage_path())
-        self._lock = Lock()
-
-    @staticmethod
-    def default_storage_path() -> Path:
-        return Path(__file__).resolve().parent / "data" / "user_profiles.json"
-
     def list_profile_ids(self) -> list[str]:
-        return sorted(self._read_all().keys())
+        with get_pool().connection() as connection:
+            rows = connection.execute(
+                "SELECT profile_id FROM user_profiles ORDER BY profile_id"
+            ).fetchall()
+        return [row["profile_id"] for row in rows]
 
     def list_profiles(self) -> list[tuple[str, UserProfile]]:
-        raw_profiles = self._read_all()
-        return [
-            (profile_id, UserProfile.model_validate(profile_data))
-            for profile_id, profile_data in raw_profiles.items()
-        ]
+        with get_pool().connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT profile_id, search_terms, job_levels, excluded_companies,
+                       excluded_positions, allow_deutsch
+                FROM user_profiles
+                ORDER BY profile_id
+                """
+            ).fetchall()
+        return [(row["profile_id"], self._profile_from_row(row)) for row in rows]
 
     def get_profile(self, profile_id: str) -> UserProfile | None:
-        raw_profiles = self._read_all()
-        raw_profile = raw_profiles.get(self._normalize_profile_id(profile_id))
-        if raw_profile is None:
-            return None
-
-        return UserProfile.model_validate(raw_profile)
+        with get_pool().connection() as connection:
+            row = connection.execute(
+                """
+                SELECT search_terms, job_levels, excluded_companies,
+                       excluded_positions, allow_deutsch
+                FROM user_profiles
+                WHERE profile_id = %s
+                """,
+                (self._normalize_profile_id(profile_id),),
+            ).fetchone()
+        return self._profile_from_row(row) if row else None
 
     def save_profile(self, profile_id: str, profile: UserProfile) -> UserProfile:
-        normalized_profile_id = self._normalize_profile_id(profile_id)
-        with self._lock:
-            raw_profiles = self._read_all()
-            raw_profiles[normalized_profile_id] = profile.model_dump(mode="json")
-            self._write_all(raw_profiles)
+        values = self._profile_values(profile)
+        with get_pool().connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO user_profiles (
+                    profile_id, search_terms, job_levels, excluded_companies,
+                    excluded_positions, allow_deutsch
+                ) VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (profile_id) DO UPDATE SET
+                    search_terms = EXCLUDED.search_terms,
+                    job_levels = EXCLUDED.job_levels,
+                    excluded_companies = EXCLUDED.excluded_companies,
+                    excluded_positions = EXCLUDED.excluded_positions,
+                    allow_deutsch = EXCLUDED.allow_deutsch,
+                    updated_at = NOW()
+                """,
+                (self._normalize_profile_id(profile_id), *values),
+            )
         return profile
 
     def create_profile(self, profile: UserProfile) -> str:
-        with self._lock:
-            raw_profiles = self._read_all()
-            profile_id = self._generate_profile_id(raw_profiles)
-            raw_profiles[profile_id] = profile.model_dump(mode="json")
-            self._write_all(raw_profiles)
+        profile_id = uuid4().hex
+        values = self._profile_values(profile)
+        with get_pool().connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO user_profiles (
+                    profile_id, search_terms, job_levels, excluded_companies,
+                    excluded_positions, allow_deutsch
+                ) VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (profile_id, *values),
+            )
         return profile_id
 
     def delete_profile(self, profile_id: str) -> bool:
-        normalized_profile_id = self._normalize_profile_id(profile_id)
-        with self._lock:
-            raw_profiles = self._read_all()
-            if normalized_profile_id not in raw_profiles:
-                return False
-
-            del raw_profiles[normalized_profile_id]
-            self._write_all(raw_profiles)
-        return True
-
-    def _read_all(self) -> dict[str, Any]:
-        if not self.storage_path.exists():
-            return {}
-
-        try:
-            with self.storage_path.open("r", encoding="utf-8") as file_handle:
-                payload = json.load(file_handle)
-        except json.JSONDecodeError:
-            return {}
-
-        if not isinstance(payload, dict):
-            return {}
-
-        return payload
-
-    def _write_all(self, profiles: dict[str, Any]) -> None:
-        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        with self.storage_path.open("w", encoding="utf-8") as file_handle:
-            json.dump(profiles, file_handle, indent=2, sort_keys=True)
-            file_handle.write("\n")
+        with get_pool().connection() as connection:
+            result = connection.execute(
+                "DELETE FROM user_profiles WHERE profile_id = %s",
+                (self._normalize_profile_id(profile_id),),
+            )
+        return result.rowcount > 0
 
     @staticmethod
     def _normalize_profile_id(profile_id: str) -> str:
@@ -110,8 +168,23 @@ class UserProfileStore:
         return normalized_profile_id
 
     @staticmethod
-    def _generate_profile_id(existing_profiles: dict[str, Any]) -> str:
-        profile_id = uuid4().hex
-        while profile_id in existing_profiles:
-            profile_id = uuid4().hex
-        return profile_id
+    def _profile_values(profile: UserProfile) -> tuple[list[str], list[str], list[str], list[str], bool]:
+        return (
+            profile.search_terms,
+            profile.job_levels,
+            profile.excluded_companies,
+            profile.excluded_positions,
+            profile.allow_deutsch,
+        )
+
+    @staticmethod
+    def _profile_from_row(row: dict) -> UserProfile:
+        return UserProfile.model_validate(
+            {
+                "search_terms": row["search_terms"],
+                "job_levels": row["job_levels"],
+                "excluded_companies": row["excluded_companies"],
+                "excluded_positions": row["excluded_positions"],
+                "allow_deutsch": row["allow_deutsch"],
+            }
+        )

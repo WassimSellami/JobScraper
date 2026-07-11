@@ -8,19 +8,30 @@ Run locally:
 pip install -r requirements.txt
 ```
 
-2. Run:
+2. Copy `.env.example` to `.env` and replace `DATABASE_URL` with the connection
+   string from the Neon dashboard. Keep `sslmode=require` in the URL.
+
+3. Run:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
+To import the existing JSON profiles once, run from `jobscraper-api`:
+
+```bash
+python -m scripts.migrate_user_profiles
+```
+
 Endpoints:
- - POST /api/scrape/all — read LinkedIn jobs from the shared CSV, apply the user profile filters, and return JSON
- - The endpoint is LinkedIn-only for now and uses `app/data/shared_jobs.csv` as its source
+ - POST /api/scrape/all — read LinkedIn jobs from PostgreSQL, apply the user profile filters, and return JSON
+ - The scheduled scraper writes directly to PostgreSQL and deduplicates jobs by URL.
 This repo is ready to run as a DigitalOcean App Platform web service.
 
 Required environment variables:
 
+- `DATABASE_URL` is the Neon PostgreSQL connection string. The `user_profiles`
+  and `jobs` tables are created automatically when the API starts.
 - `CORS_ORIGINS` should contain the comma-separated frontend origins you want to allow in production.
 - `LOG_LEVEL` can be set to `INFO`, `WARNING`, or `DEBUG`.
 - `WEB_CONCURRENCY` optionally controls the number of Gunicorn workers.

@@ -19,11 +19,9 @@ def _to_record(profile_id: str, profile: UserProfile) -> UserProfileRecord:
 
 @router.get("", response_model=list[UserProfileRecord])
 def list_profiles():
-    profile_ids = store.list_profile_ids()
     return [
         _to_record(profile_id, profile)
-        for profile_id in profile_ids
-        if (profile := store.get_profile(profile_id)) is not None
+        for profile_id, profile in store.list_profiles()
     ]
 
 

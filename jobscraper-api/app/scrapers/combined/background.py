@@ -4,10 +4,10 @@ import asyncio
 import logging
 from typing import Optional
 
-from ...constants import PROFILE_SCRAPE_INTERVAL_SECONDS, SHARED_JOBS_CSV
+from ...constants import PROFILE_SCRAPE_INTERVAL_SECONDS
 from ...user_profiles import UserProfileStore
 from .scraper import scrape_linkedin_terms
-from .storage import SharedJobsCsvStore
+from .storage import JobsPostgresStore
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +16,11 @@ class ProfileScrapeScheduler:
     def __init__(
         self,
         profile_store: Optional[UserProfileStore] = None,
-        csv_store: Optional[SharedJobsCsvStore] = None,
+        jobs_store: Optional[JobsPostgresStore] = None,
         interval_seconds: int = PROFILE_SCRAPE_INTERVAL_SECONDS,
     ):
         self.profile_store = profile_store or UserProfileStore()
-        self.csv_store = csv_store or SharedJobsCsvStore(SHARED_JOBS_CSV)
+        self.jobs_store = jobs_store or JobsPostgresStore()
         self.interval_seconds = interval_seconds
         self._task: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
@@ -59,8 +59,8 @@ class ProfileScrapeScheduler:
             logger.warning("Scheduled scrape produced no rows")
             return 0
 
-        updated = await asyncio.to_thread(self.csv_store.upsert, scraped)
-        logger.info("Shared jobs CSV now contains %d rows", len(updated))
+        updated = await asyncio.to_thread(self.jobs_store.upsert, scraped)
+        logger.info("Jobs database now contains %d rows", len(updated))
         return len(updated)
 
     async def _run_loop(self) -> None:

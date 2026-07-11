@@ -1,48 +1,122 @@
 from __future__ import annotations
 
+import json
 import re
-from pathlib import Path
-from threading import Lock
 
 import pandas as pd
+from psycopg.types.json import Jsonb
+
+from ...user_profiles import get_pool
 
 
-class SharedJobsCsvStore:
-    def __init__(self, csv_path: str | Path):
-        self.csv_path = Path(csv_path)
-        self._lock = Lock()
+def initialize_jobs_database() -> None:
+    with get_pool().connection() as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS jobs (
+                id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                external_id TEXT,
+                job_url TEXT NOT NULL UNIQUE,
+                site TEXT,
+                job_url_direct TEXT,
+                title TEXT,
+                company TEXT,
+                location TEXT,
+                date_posted TEXT,
+                job_type TEXT,
+                description TEXT,
+                job_level TEXT,
+                company_industry TEXT,
+                search_term TEXT,
+                payload JSONB NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS jobs_site_idx ON jobs (LOWER(site))"
+        )
 
+
+class JobsPostgresStore:
     def read(self, site: str | None = None) -> pd.DataFrame:
-        if not self.csv_path.exists():
-            return pd.DataFrame()
+        query = "SELECT payload FROM jobs"
+        parameters: tuple[str, ...] = ()
+        if site:
+            query += " WHERE LOWER(site) = LOWER(%s)"
+            parameters = (str(site).strip(),)
+        query += " ORDER BY created_at DESC"
 
-        df = pd.read_csv(self.csv_path)
-        if site and not df.empty and "site" in df.columns:
-            site_value = str(site).strip().casefold()
-            df = df[
-                df["site"].fillna("").astype(str).str.strip().str.casefold()
-                == site_value
-            ].copy()
+        with get_pool().connection() as connection:
+            rows = connection.execute(query, parameters).fetchall()
 
-        return df.reset_index(drop=True)
+        return pd.DataFrame([row["payload"] for row in rows])
 
     def upsert(self, new_rows: pd.DataFrame) -> pd.DataFrame:
         if new_rows is None or new_rows.empty:
             return self.read()
 
-        with self._lock:
-            current_rows = self.read()
-            combined = pd.concat([current_rows, new_rows], ignore_index=True, sort=False)
-            combined = self._normalize_whitespace(combined)
+        cleaned = self._normalize_whitespace(new_rows)
+        if "job_url" not in cleaned.columns:
+            raise ValueError("Scraped jobs must contain a job_url column")
 
-            if "job_url" in combined.columns:
-                combined["job_url"] = combined["job_url"].fillna("").astype(str).str.strip()
-                combined = combined[combined["job_url"] != ""].copy()
-                combined = combined.drop_duplicates(subset=["job_url"], keep="first")
+        cleaned = cleaned.copy()
+        cleaned["job_url"] = cleaned["job_url"].fillna("").astype(str).str.strip()
+        cleaned = cleaned[cleaned["job_url"] != ""].copy()
+        cleaned = cleaned.drop_duplicates(subset=["job_url"], keep="first")
 
-            self.csv_path.parent.mkdir(parents=True, exist_ok=True)
-            combined.to_csv(self.csv_path, index=False)
-            return combined
+        records = json.loads(cleaned.to_json(orient="records", date_format="iso"))
+        values = [self._record_values(record) for record in records]
+        if values:
+            with get_pool().connection() as connection:
+                connection.cursor().executemany(
+                    """
+                    INSERT INTO jobs (
+                        external_id, job_url, site, job_url_direct, title, company,
+                        location, date_posted, job_type, description, job_level,
+                        company_industry, search_term, payload
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (job_url) DO UPDATE SET
+                        external_id = EXCLUDED.external_id,
+                        site = EXCLUDED.site,
+                        job_url_direct = EXCLUDED.job_url_direct,
+                        title = EXCLUDED.title,
+                        company = EXCLUDED.company,
+                        location = EXCLUDED.location,
+                        date_posted = EXCLUDED.date_posted,
+                        job_type = EXCLUDED.job_type,
+                        description = EXCLUDED.description,
+                        job_level = EXCLUDED.job_level,
+                        company_industry = EXCLUDED.company_industry,
+                        search_term = EXCLUDED.search_term,
+                        payload = EXCLUDED.payload,
+                        updated_at = NOW()
+                    """,
+                    values,
+                )
+
+        return self.read()
+
+    @staticmethod
+    def _record_values(record: dict) -> tuple:
+        return (
+            record.get("id"),
+            record["job_url"],
+            record.get("site"),
+            record.get("job_url_direct"),
+            record.get("title"),
+            record.get("company"),
+            record.get("location"),
+            record.get("date_posted"),
+            record.get("job_type"),
+            record.get("description"),
+            record.get("job_level"),
+            record.get("company_industry"),
+            record.get("_search_term"),
+            Jsonb(record),
+        )
 
     @staticmethod
     def _normalize_whitespace(df: pd.DataFrame) -> pd.DataFrame:
@@ -50,9 +124,10 @@ class SharedJobsCsvStore:
             return df
 
         cleaned = df.copy()
-        description_series = cleaned["description"].fillna("").astype(str)
-        description_series = description_series.map(
-            lambda value: re.sub(r"\s+", " ", value).strip()
+        cleaned["description"] = (
+            cleaned["description"]
+            .fillna("")
+            .astype(str)
+            .map(lambda value: re.sub(r"\s+", " ", value).strip())
         )
-        cleaned["description"] = description_series
         return cleaned

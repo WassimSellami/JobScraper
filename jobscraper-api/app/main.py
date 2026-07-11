@@ -7,6 +7,8 @@ from .autocomplete import router as autocomplete_router
 from .config import APP_NAME, CORS_ALLOW_CREDENTIALS, CORS_ORIGINS, LOG_LEVEL
 from .scrapers.combined import router as combined_router
 from .scrapers.combined.background import ProfileScrapeScheduler
+from .scrapers.combined.storage import initialize_jobs_database
+from .user_profiles import close_database, initialize_database
 from .user_profiles_router import router as user_profiles_router
 
 logging.basicConfig(
@@ -36,12 +38,15 @@ app.include_router(user_profiles_router, prefix="/api/user-profiles")
 
 @app.on_event("startup")
 async def _start_profile_scrape_scheduler():
+    initialize_database()
+    initialize_jobs_database()
     profile_scrape_scheduler.start()
 
 
 @app.on_event("shutdown")
 async def _stop_profile_scrape_scheduler():
     await profile_scrape_scheduler.stop()
+    close_database()
 
 
 @app.get("/health")
