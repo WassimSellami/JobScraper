@@ -3,12 +3,9 @@
 import json
 from pathlib import Path
 
-from app.user_profiles import (
-    UserProfile,
-    UserProfileStore,
-    close_database,
-    initialize_database,
-)
+from app.database import close_database, initialize_database
+from app.schemas import UserProfile
+from app.user_profile_repository import UserProfileStore
 
 
 def main() -> None:

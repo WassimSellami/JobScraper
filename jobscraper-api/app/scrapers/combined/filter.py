@@ -8,7 +8,7 @@ from app.constants import (
     JOB_BOARD_LINKEDIN,
     LINKEDIN_AFTER_FILTER_COLUMNS,
 )
-from app.user_profiles import UserProfile
+from app.schemas import UserProfile
 from app.utils.german_detector import GERMAN_REGEX
 
 

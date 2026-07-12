@@ -1,25 +1,19 @@
-import json
 import logging
+from typing import Any
 
-import pandas as pd
 from fastapi import APIRouter, HTTPException
 
-from .filter import filter_linkedin
-from .storage import JobsPostgresStore
 from ...constants import JOB_BOARD_LINKEDIN
-from ...user_profiles import UserProfile
+from ...schemas import UserProfile
+from .service import CombinedJobsService, JobsFilterError, JobsReadError
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-jobs_store = JobsPostgresStore()
-
-
-def _dataframe_to_records(df: pd.DataFrame) -> list[dict]:
-    return json.loads(df.to_json(orient="records", date_format="iso"))
+service = CombinedJobsService()
 
 
 @router.post("/all")
-def post_all(profile: UserProfile):
+def post_all(profile: UserProfile) -> list[dict[str, Any]]:
     logger.info(
         "POST /all started | terms=%d source=database board=%s",
         len(profile.search_terms),
@@ -27,19 +21,12 @@ def post_all(profile: UserProfile):
     )
 
     try:
-        raw_df = jobs_store.read(
-            site=JOB_BOARD_LINKEDIN, last_hours=profile.last_hours
-        )
-        logger.info("Jobs database returned %d LinkedIn rows", len(raw_df))
-    except Exception:
-        logger.exception("Jobs database read failed")
-        raise HTTPException(status_code=500, detail="Jobs database read failed")
-
-    try:
-        filtered = filter_linkedin(raw_df, profile)
-        logger.info("LinkedIn filter returned %d rows", len(filtered))
-    except Exception:
-        logger.exception("LinkedIn filtering failed")
-        raise HTTPException(status_code=500, detail="LinkedIn filtering failed")
-
-    return _dataframe_to_records(filtered)
+        return service.get_all(profile)
+    except JobsReadError as exc:
+        raise HTTPException(
+            status_code=500, detail="Jobs database read failed"
+        ) from exc
+    except JobsFilterError as exc:
+        raise HTTPException(
+            status_code=500, detail="LinkedIn filtering failed"
+        ) from exc

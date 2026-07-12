@@ -6,7 +6,7 @@ import re
 import pandas as pd
 from psycopg.types.json import Jsonb
 
-from ...user_profiles import get_pool
+from ...database import get_pool
 
 
 def initialize_jobs_database() -> None:

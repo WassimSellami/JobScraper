@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 
 from ...constants import PROFILE_SCRAPE_INTERVAL_SECONDS
-from ...user_profiles import UserProfileStore
+from ...user_profile_repository import UserProfileStore
 from ...utils.search_terms import normalize_search_terms
 from .scraper import scrape_linkedin_terms
 from .storage import JobsPostgresStore

@@ -6,11 +6,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .autocomplete import router as autocomplete_router
-from .config import APP_NAME, CORS_ALLOW_CREDENTIALS, CORS_ORIGINS, LOG_LEVEL
+from .config import (
+    APP_NAME,
+    CORS_ALLOW_CREDENTIALS,
+    CORS_ORIGINS,
+    LOG_LEVEL,
+)
+from .database import close_database, initialize_database
 from .scrapers.combined import router as combined_router
 from .scrapers.combined.background import ProfileScrapeScheduler
 from .scrapers.combined.storage import initialize_jobs_database
-from .user_profiles import close_database, initialize_database
 from .user_profiles_router import router as user_profiles_router
 
 logging.basicConfig(
