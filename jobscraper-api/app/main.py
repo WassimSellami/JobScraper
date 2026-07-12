@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,8 +19,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=APP_NAME)
-profile_scrape_scheduler = ProfileScrapeScheduler()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = ProfileScrapeScheduler()
+    app.state.profile_scrape_scheduler = scheduler
+
+    try:
+        await asyncio.to_thread(initialize_database)
+        await asyncio.to_thread(initialize_jobs_database)
+        scheduler.start()
+        yield
+    finally:
+        await scheduler.stop()
+        await asyncio.to_thread(close_database)
+
+
+app = FastAPI(title=APP_NAME, lifespan=lifespan)
 
 if CORS_ORIGINS:
     app.add_middleware(
@@ -34,20 +51,6 @@ else:
 app.include_router(autocomplete_router.router, prefix="/api/autocomplete")
 app.include_router(combined_router.router, prefix="/api/scrape")
 app.include_router(user_profiles_router, prefix="/api/user-profiles")
-
-
-@app.on_event("startup")
-async def _start_profile_scrape_scheduler():
-    initialize_database()
-    initialize_jobs_database()
-    profile_scrape_scheduler.start()
-
-
-@app.on_event("shutdown")
-async def _stop_profile_scrape_scheduler():
-    await profile_scrape_scheduler.stop()
-    close_database()
-
 
 @app.get("/health")
 def health():

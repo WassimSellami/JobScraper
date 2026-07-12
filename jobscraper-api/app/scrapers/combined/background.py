@@ -49,7 +49,7 @@ class ProfileScrapeScheduler:
             logger.info("Stopped profile scrape scheduler")
 
     async def run_once(self) -> int:
-        terms = self._collect_unique_terms()
+        terms = await asyncio.to_thread(self._collect_unique_terms)
         if not terms:
             logger.warning("No search terms found in stored profiles; skipping scrape")
             return 0
@@ -60,9 +60,9 @@ class ProfileScrapeScheduler:
             logger.warning("Scheduled scrape produced no rows")
             return 0
 
-        updated = await asyncio.to_thread(self.jobs_store.upsert, scraped)
-        logger.info("Jobs database now contains %d rows", len(updated))
-        return len(updated)
+        updated_count = await asyncio.to_thread(self.jobs_store.upsert, scraped)
+        logger.info("Upserted %d jobs", updated_count)
+        return updated_count
 
     async def _run_loop(self) -> None:
         while not self._stop_event.is_set():

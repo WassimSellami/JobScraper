@@ -9,6 +9,7 @@ from ...constants import (
     SCRAPE_LOCATION,
 )
 from ...utils.search_terms import normalize_search_terms
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,6 +48,14 @@ def scrape_linkedin_terms(search_terms: list[str]) -> pd.DataFrame:
 
     combined = pd.concat(frames, ignore_index=True)
     if "job_url" in combined.columns:
-        combined = combined.drop_duplicates(subset=["job_url"], keep="first")
+        search_terms_by_url = combined.groupby("job_url", dropna=False)[
+            "_search_term"
+        ].agg(lambda values: normalize_search_terms(values.tolist()))
+        combined = combined.drop_duplicates(subset=["job_url"], keep="first").copy()
+        combined["_search_terms"] = combined["job_url"].map(search_terms_by_url)
+    else:
+        combined["_search_terms"] = combined["_search_term"].map(
+            lambda term: normalize_search_terms([term])
+        )
 
     return combined

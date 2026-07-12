@@ -9,33 +9,31 @@ from app.constants import (
     LINKEDIN_AFTER_FILTER_COLUMNS,
 )
 from app.user_profiles import UserProfile
-from app.utils.german_detector import has_german_requirement
+from app.utils.german_detector import GERMAN_REGEX
+
+
+def _contains_any(series: pd.Series, terms: list[str]) -> pd.Series:
+    if not terms:
+        return pd.Series(False, index=series.index)
+
+    pattern = "|".join(re.escape(str(term)) for term in terms)
+    return series.astype(str).str.contains(pattern, case=False, regex=True, na=False)
 
 
 def _apply_common_exclusions(
     df: pd.DataFrame, profile: UserProfile
 ) -> pd.DataFrame:
-    def has_exclusion_term(title: str) -> bool:
-        title_lower = str(title).lower()
-        for keyword in profile.excluded_positions:
-            if keyword.lower() in title_lower:
-                return True
-        return False
-
-    def has_company_exclusion_term(company: str) -> bool:
-        company_lower = str(company).lower()
-        for keyword in profile.excluded_companies:
-            if keyword.lower() in company_lower:
-                return True
-        return False
-
     df_filtered = df.copy()
     if "title" in df_filtered.columns:
-        df_filtered = df_filtered[~df_filtered["title"].apply(has_exclusion_term)].copy()
+        excluded_titles = _contains_any(
+            df_filtered["title"], profile.excluded_positions
+        )
+        df_filtered = df_filtered[~excluded_titles].copy()
     if "company" in df_filtered.columns:
-        df_filtered = df_filtered[
-            ~df_filtered["company"].apply(has_company_exclusion_term)
-        ].copy()
+        excluded_companies = _contains_any(
+            df_filtered["company"], profile.excluded_companies
+        )
+        df_filtered = df_filtered[~excluded_companies].copy()
     return df_filtered
 
 
@@ -50,9 +48,7 @@ def _apply_search_term_filter(df: pd.DataFrame, profile: UserProfile) -> pd.Data
 
     searchable_columns = [
         column_name
-        for column_name in [
-            "_search_term"
-        ]
+        for column_name in ["_search_terms", "_search_term"]
         if column_name in df.columns
     ]
     if not searchable_columns:
@@ -72,16 +68,16 @@ def _apply_german_filter(
     if profile.allow_deutsch:
         return df
 
-    keep_rows = []
-    for idx, row in df.iterrows():
-        description = row.get("description", "")
-        if pd.isna(description):
-            description = ""
-        if has_german_requirement(description):
-            continue
-        keep_rows.append(idx)
+    if "description" not in df.columns:
+        return df
 
-    return df.loc[keep_rows].copy()
+    has_german_requirement = (
+        df["description"]
+        .fillna("")
+        .astype(str)
+        .str.contains(GERMAN_REGEX, na=False)
+    )
+    return df[~has_german_requirement].copy()
 
 
 def filter_linkedin(

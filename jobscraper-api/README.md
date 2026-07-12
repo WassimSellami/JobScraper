@@ -34,7 +34,9 @@ Required environment variables:
   and `jobs` tables are created automatically when the API starts.
 - `CORS_ORIGINS` should contain the comma-separated frontend origins you want to allow in production.
 - `LOG_LEVEL` can be set to `INFO`, `WARNING`, or `DEBUG`.
-- `WEB_CONCURRENCY` optionally controls the number of Gunicorn workers.
+- `WEB_CONCURRENCY` optionally controls the number of Gunicorn workers. Keep it
+  at `1` while the in-process scheduled scraper is enabled, otherwise every
+  worker will run its own scheduler.
 - `WEB_TIMEOUT` optionally controls the request timeout for long-running scrape jobs.
 
 The app starts with Gunicorn through the `Procfile`, so no extra start command is needed on DigitalOcean.

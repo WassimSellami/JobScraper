@@ -63,7 +63,7 @@ GERMAN_REQUIRED_PATTERNS = [
     r"\b(?:fluent|business[- ]fluent|native(?:[- ]level)?|near[- ]native)\b.{0,30}\bgerman\b",
     r"\bgerman\b.{0,30}\b(?:fluent|business[- ]fluent|native(?:[- ]level)?|near[- ]native)\b",
     r"\b(?:fluent|business[- ]fluent|native(?:[- ]level)?|near[- ]native)\s+german(?:\s+skills?)?\b",
-    r"sprichst\s+(flie[sß]end|sehr gut|gut)\s+deutsch",
+    r"sprichst\s+(?:flie[sß]end|sehr gut|gut)\s+deutsch",
     r"gut und sprichst\s+flie[sß]end\s+deutsch",
     r"\bdeutsch\s*[:(]\s*(?:c1|c2|flie(?:ß|ss)end|verhandlungssicher|muttersprachlich|gut|sehr gut)\b",
     r"\b(?:sie\s+sprechen|du\s+sprichst|sie\s+beherrschen|du\s+beherrschst)\s+(?:(?:flie(?:ß|ss)end|gut|sehr gut|verhandlungssicher)\s+)?deutsch\b",

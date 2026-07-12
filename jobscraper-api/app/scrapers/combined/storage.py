@@ -28,6 +28,7 @@ def initialize_jobs_database() -> None:
                 job_level TEXT,
                 company_industry TEXT,
                 search_term TEXT,
+                search_terms TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
                 payload JSONB NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -36,6 +37,12 @@ def initialize_jobs_database() -> None:
         )
         connection.execute(
             "CREATE INDEX IF NOT EXISTS jobs_site_idx ON jobs (LOWER(site))"
+        )
+        connection.execute(
+            """
+            ALTER TABLE jobs
+            ADD COLUMN IF NOT EXISTS search_terms TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]
+            """
         )
         connection.execute(
             """
@@ -49,7 +56,7 @@ class JobsPostgresStore:
     def read(
         self, site: str | None = None, last_hours: int | None = None
     ) -> pd.DataFrame:
-        query = "SELECT payload FROM jobs"
+        query = "SELECT payload, search_terms FROM jobs"
         conditions: list[str] = []
         parameters: list = []
         if site:
@@ -70,11 +77,18 @@ class JobsPostgresStore:
         with get_pool().connection() as connection:
             rows = connection.execute(query, tuple(parameters)).fetchall()
 
-        return pd.DataFrame([row["payload"] for row in rows])
+        records = []
+        for row in rows:
+            record = dict(row["payload"])
+            stored_terms = row["search_terms"] or []
+            if stored_terms:
+                record["_search_terms"] = stored_terms
+            records.append(record)
+        return pd.DataFrame(records)
 
-    def upsert(self, new_rows: pd.DataFrame) -> pd.DataFrame:
+    def upsert(self, new_rows: pd.DataFrame) -> int:
         if new_rows is None or new_rows.empty:
-            return self.read()
+            return 0
 
         cleaned = self._normalize_whitespace(new_rows)
         if "job_url" not in cleaned.columns:
@@ -94,9 +108,9 @@ class JobsPostgresStore:
                     INSERT INTO jobs (
                         external_id, job_url, site, job_url_direct, title, company,
                         location, date_posted, job_type, description, job_level,
-                        company_industry, search_term, payload
+                        company_industry, search_term, search_terms, payload
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (job_url) DO UPDATE SET
                         external_id = EXCLUDED.external_id,
                         site = EXCLUDED.site,
@@ -110,13 +124,14 @@ class JobsPostgresStore:
                         job_level = EXCLUDED.job_level,
                         company_industry = EXCLUDED.company_industry,
                         search_term = EXCLUDED.search_term,
+                        search_terms = EXCLUDED.search_terms,
                         payload = EXCLUDED.payload,
                         updated_at = NOW()
                     """,
                     values,
                 )
 
-        return self.read()
+        return len(values)
 
     @staticmethod
     def _record_values(record: dict) -> tuple:
@@ -134,6 +149,7 @@ class JobsPostgresStore:
             record.get("job_level"),
             record.get("company_industry"),
             record.get("_search_term"),
+            record.get("_search_terms", []),
             Jsonb(record),
         )
 
