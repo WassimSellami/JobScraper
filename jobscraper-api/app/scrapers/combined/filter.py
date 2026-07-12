@@ -130,13 +130,25 @@ def filter_indeed(df: pd.DataFrame, profile: UserProfile) -> pd.DataFrame:
     if df is None or df.empty:
         return pd.DataFrame(columns=INDEED_AFTER_FILTER_COLUMNS)
 
+    df = _apply_search_term_filter(df, profile)
     df = _apply_common_exclusions(df, profile)
 
     # Indeed does not use LinkedIn-specific job_level filtering.
-    df = df[df["job_type"] == "fulltime"].copy()
+    if "job_type" in df.columns:
+        df = df[
+            df["job_type"].fillna("").astype(str).str.lower() == "fulltime"
+        ].copy()
 
     df = _apply_german_filter(df, profile)
     df["job_board"] = JOB_BOARD_INDEED
+
+    missing_columns = [
+        column_name
+        for column_name in INDEED_AFTER_FILTER_COLUMNS
+        if column_name not in df.columns
+    ]
+    for column_name in missing_columns:
+        df[column_name] = pd.NA
 
     df_output = df[INDEED_AFTER_FILTER_COLUMNS].reset_index(drop=True)
     if "date_posted" in df_output.columns:

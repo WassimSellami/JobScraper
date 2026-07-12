@@ -13,7 +13,7 @@ from ...utils.search_terms import normalize_search_terms
 logger = logging.getLogger(__name__)
 
 
-def scrape_linkedin_terms(search_terms: list[str]) -> pd.DataFrame:
+def scrape_job_terms(search_terms: list[str]) -> pd.DataFrame:
     try:
         from jobspy import scrape_jobs
     except Exception:
@@ -24,24 +24,29 @@ def scrape_linkedin_terms(search_terms: list[str]) -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
 
     for term in normalized_terms:
-        logger.info("Scraping term: %r", term)
-        try:
-            df = scrape_jobs(
-                site_name="linkedin",
-                search_term=term,
-                location=SCRAPE_LOCATION,
-                distance=SCRAPE_DISTANCE_MILES,
-                hours_old=SCRAPE_HOURS_OLD,
-                results_wanted=RESULTS_WANTED_DEFAULT,
-                linkedin_fetch_description=True,
-                country_indeed="germany",
-                verbose=0,
-            )
-            if df is not None and not df.empty:
-                df["_search_term"] = term
-                frames.append(df)
-        except Exception:
-            logger.exception("Failed scraping term %r", term)
+        for site in ("linkedin", "indeed"):
+            logger.info("Scraping site=%s term=%r", site, term)
+            try:
+                options = {
+                    "site_name": site,
+                    "search_term": term,
+                    "location": SCRAPE_LOCATION,
+                    "distance": SCRAPE_DISTANCE_MILES,
+                    "hours_old": SCRAPE_HOURS_OLD,
+                    "results_wanted": RESULTS_WANTED_DEFAULT,
+                    "verbose": 0,
+                }
+                if site == "linkedin":
+                    options["linkedin_fetch_description"] = True
+                else:
+                    options["country_indeed"] = "germany"
+
+                df = scrape_jobs(**options)
+                if df is not None and not df.empty:
+                    df["_search_term"] = term
+                    frames.append(df)
+            except Exception:
+                logger.exception("Failed scraping site=%s term=%r", site, term)
 
     if not frames:
         return pd.DataFrame()
@@ -59,3 +64,8 @@ def scrape_linkedin_terms(search_terms: list[str]) -> pd.DataFrame:
         )
 
     return combined
+
+
+def scrape_linkedin_terms(search_terms: list[str]) -> pd.DataFrame:
+    """Backward-compatible alias for the combined scheduled scrape."""
+    return scrape_job_terms(search_terms)

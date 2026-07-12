@@ -3,7 +3,6 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
-from ...constants import JOB_BOARD_LINKEDIN
 from ...schemas import UserProfile
 from .service import CombinedJobsService, JobsFilterError, JobsReadError
 
@@ -15,9 +14,8 @@ service = CombinedJobsService()
 @router.post("/all")
 def post_all(profile: UserProfile) -> list[dict[str, Any]]:
     logger.info(
-        "POST /all started | terms=%d source=database board=%s",
+        "POST /all started | terms=%d source=database boards=linkedin,indeed",
         len(profile.search_terms),
-        JOB_BOARD_LINKEDIN,
     )
 
     try:
@@ -28,5 +26,5 @@ def post_all(profile: UserProfile) -> list[dict[str, Any]]:
         ) from exc
     except JobsFilterError as exc:
         raise HTTPException(
-            status_code=500, detail="LinkedIn filtering failed"
+            status_code=500, detail="Jobs filtering failed"
         ) from exc

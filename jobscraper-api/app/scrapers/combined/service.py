@@ -4,9 +4,9 @@ from typing import Any
 
 import pandas as pd
 
-from ...constants import JOB_BOARD_LINKEDIN
+from ...constants import JOB_BOARD_INDEED, JOB_BOARD_LINKEDIN
 from ...schemas import UserProfile
-from .filter import filter_linkedin
+from .filter import filter_indeed, filter_linkedin
 from .storage import JobsPostgresStore
 
 logger = logging.getLogger(__name__)
@@ -26,21 +26,36 @@ class CombinedJobsService:
 
     def get_all(self, profile: UserProfile) -> list[dict[str, Any]]:
         try:
-            raw_df = self.jobs_store.read(
+            linkedin_df = self.jobs_store.read(
                 site=JOB_BOARD_LINKEDIN,
                 last_hours=profile.last_hours,
             )
-            logger.info("Jobs database returned %d LinkedIn rows", len(raw_df))
+            indeed_df = self.jobs_store.read(
+                site=JOB_BOARD_INDEED,
+                last_hours=profile.last_hours,
+            )
+            logger.info(
+                "Jobs database returned %d LinkedIn rows and %d Indeed rows",
+                len(linkedin_df),
+                len(indeed_df),
+            )
         except Exception as exc:
             logger.exception("Jobs database read failed")
             raise JobsReadError from exc
 
         try:
-            filtered = filter_linkedin(raw_df, profile)
-            logger.info("LinkedIn filter returned %d rows", len(filtered))
-            return self._dataframe_to_records(filtered)
+            filtered_linkedin = filter_linkedin(linkedin_df, profile)
+            filtered_indeed = filter_indeed(indeed_df, profile)
+            records = self._dataframe_to_records(filtered_linkedin)
+            records.extend(self._dataframe_to_records(filtered_indeed))
+            logger.info(
+                "Filters returned %d LinkedIn rows and %d Indeed rows",
+                len(filtered_linkedin),
+                len(filtered_indeed),
+            )
+            return records
         except Exception as exc:
-            logger.exception("LinkedIn filtering failed")
+            logger.exception("Jobs filtering failed")
             raise JobsFilterError from exc
 
     @staticmethod

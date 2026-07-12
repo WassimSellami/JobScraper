@@ -7,7 +7,7 @@ from typing import Optional
 from ...constants import PROFILE_SCRAPE_INTERVAL_SECONDS
 from ...user_profile_repository import UserProfileStore
 from ...utils.search_terms import normalize_search_terms
-from .scraper import scrape_linkedin_terms
+from .scraper import scrape_job_terms
 from .storage import JobsPostgresStore
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class ProfileScrapeScheduler:
             return 0
 
         logger.info("Running scheduled scrape for %d unique terms", len(terms))
-        scraped = await asyncio.to_thread(scrape_linkedin_terms, terms)
+        scraped = await asyncio.to_thread(scrape_job_terms, terms)
         if scraped is None or scraped.empty:
             logger.warning("Scheduled scrape produced no rows")
             return 0

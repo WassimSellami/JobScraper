@@ -24,7 +24,7 @@ python -m scripts.migrate_user_profiles
 ```
 
 Endpoints:
- - POST /api/scrape/all — read LinkedIn jobs from PostgreSQL, apply the user profile filters, and return JSON
+ - POST /api/scrape/all — read LinkedIn and Indeed jobs from PostgreSQL, apply the user profile filters, and return JSON
  - The scheduled scraper writes directly to PostgreSQL and deduplicates jobs by URL.
 This repo is ready to run as a DigitalOcean App Platform web service.
 
