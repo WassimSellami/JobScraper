@@ -47,9 +47,12 @@ def get_pool() -> ConnectionPool:
     if _pool is None:
         _pool = ConnectionPool(
             conninfo=_database_url(),
-            min_size=1,
+            min_size=0,
             max_size=10,
             kwargs={"row_factory": dict_row},
+            check=ConnectionPool.check_connection,
+            max_idle=120,
+            max_lifetime=1800,
             open=False,
         )
         _pool.open(wait=True)
