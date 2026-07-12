@@ -23,6 +23,7 @@ class UserProfile(BaseModel):
     excluded_companies: list[str] = Field(default_factory=list)
     excluded_positions: list[str] = Field(default_factory=list)
     allow_deutsch: bool = False
+    last_hours: int = Field(default=24, ge=0)
 
 
 class UserProfileRecord(UserProfile):
@@ -77,6 +78,30 @@ def initialize_database() -> None:
             )
             """
         )
+        connection.execute(
+            """
+            ALTER TABLE user_profiles
+            ADD COLUMN IF NOT EXISTS last_hours INTEGER NOT NULL DEFAULT 1
+            """
+        )
+        connection.execute(
+            """
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'user_profiles_last_hours_nonnegative'
+                      AND conrelid = 'user_profiles'::regclass
+                ) THEN
+                    ALTER TABLE user_profiles
+                    ADD CONSTRAINT user_profiles_last_hours_nonnegative
+                    CHECK (last_hours >= 0);
+                END IF;
+            END
+            $$
+            """
+        )
 
 
 def close_database() -> None:
@@ -99,7 +124,7 @@ class UserProfileStore:
             rows = connection.execute(
                 """
                 SELECT profile_id, search_terms, job_levels, excluded_companies,
-                       excluded_positions, allow_deutsch
+                       excluded_positions, allow_deutsch, last_hours
                 FROM user_profiles
                 ORDER BY profile_id
                 """
@@ -111,7 +136,7 @@ class UserProfileStore:
             row = connection.execute(
                 """
                 SELECT search_terms, job_levels, excluded_companies,
-                       excluded_positions, allow_deutsch
+                       excluded_positions, allow_deutsch, last_hours
                 FROM user_profiles
                 WHERE profile_id = %s
                 """,
@@ -126,14 +151,15 @@ class UserProfileStore:
                 """
                 INSERT INTO user_profiles (
                     profile_id, search_terms, job_levels, excluded_companies,
-                    excluded_positions, allow_deutsch
-                ) VALUES (%s, %s, %s, %s, %s, %s)
+                    excluded_positions, allow_deutsch, last_hours
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (profile_id) DO UPDATE SET
                     search_terms = EXCLUDED.search_terms,
                     job_levels = EXCLUDED.job_levels,
                     excluded_companies = EXCLUDED.excluded_companies,
                     excluded_positions = EXCLUDED.excluded_positions,
                     allow_deutsch = EXCLUDED.allow_deutsch,
+                    last_hours = EXCLUDED.last_hours,
                     updated_at = NOW()
                 """,
                 (self._normalize_profile_id(profile_id), *values),
@@ -148,8 +174,8 @@ class UserProfileStore:
                 """
                 INSERT INTO user_profiles (
                     profile_id, search_terms, job_levels, excluded_companies,
-                    excluded_positions, allow_deutsch
-                ) VALUES (%s, %s, %s, %s, %s, %s)
+                    excluded_positions, allow_deutsch, last_hours
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (profile_id, *values),
             )
@@ -171,13 +197,16 @@ class UserProfileStore:
         return normalized_profile_id
 
     @staticmethod
-    def _profile_values(profile: UserProfile) -> tuple[list[str], list[str], list[str], list[str], bool]:
+    def _profile_values(
+        profile: UserProfile,
+    ) -> tuple[list[str], list[str], list[str], list[str], bool, int]:
         return (
             profile.search_terms,
             profile.job_levels,
             profile.excluded_companies,
             profile.excluded_positions,
             profile.allow_deutsch,
+            profile.last_hours,
         )
 
     @staticmethod
@@ -189,5 +218,6 @@ class UserProfileStore:
                 "excluded_companies": row["excluded_companies"],
                 "excluded_positions": row["excluded_positions"],
                 "allow_deutsch": row["allow_deutsch"],
+                "last_hours": row["last_hours"],
             }
         )

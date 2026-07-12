@@ -27,7 +27,9 @@ def post_all(profile: UserProfile):
     )
 
     try:
-        raw_df = jobs_store.read(site=JOB_BOARD_LINKEDIN)
+        raw_df = jobs_store.read(
+            site=JOB_BOARD_LINKEDIN, last_hours=profile.last_hours
+        )
         logger.info("Jobs database returned %d LinkedIn rows", len(raw_df))
     except Exception:
         logger.exception("Jobs database read failed")

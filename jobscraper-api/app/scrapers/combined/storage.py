@@ -37,19 +37,38 @@ def initialize_jobs_database() -> None:
         connection.execute(
             "CREATE INDEX IF NOT EXISTS jobs_site_idx ON jobs (LOWER(site))"
         )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS jobs_site_created_at_idx
+            ON jobs (LOWER(site), created_at DESC)
+            """
+        )
 
 
 class JobsPostgresStore:
-    def read(self, site: str | None = None) -> pd.DataFrame:
+    def read(
+        self, site: str | None = None, last_hours: int | None = None
+    ) -> pd.DataFrame:
         query = "SELECT payload FROM jobs"
-        parameters: tuple[str, ...] = ()
+        conditions: list[str] = []
+        parameters: list = []
         if site:
-            query += " WHERE LOWER(site) = LOWER(%s)"
-            parameters = (str(site).strip(),)
+            conditions.append("LOWER(site) = LOWER(%s)")
+            parameters.append(str(site).strip())
+        if last_hours is not None:
+            if last_hours < 0:
+                raise ValueError("last_hours must be greater than or equal to 0")
+            if last_hours == 0:
+                conditions.append("FALSE")
+            else:
+                conditions.append("created_at >= NOW() - (%s * INTERVAL '1 hour')")
+                parameters.append(last_hours)
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY created_at DESC"
 
         with get_pool().connection() as connection:
-            rows = connection.execute(query, parameters).fetchall()
+            rows = connection.execute(query, tuple(parameters)).fetchall()
 
         return pd.DataFrame([row["payload"] for row in rows])
 
