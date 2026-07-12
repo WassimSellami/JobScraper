@@ -1,79 +1,8 @@
-import os
-
-# Inlined general settings (previously from settings_general.py)
-PROCESS_GLASSDOOR = True
-PROCESS_STEPSTONE = True
-PROCESS_XING = True
-
-GLASSDOOR_USE_GERMAN_FILTER = False
-STEPSTONE_USE_GERMAN_FILTER = True
-XING_USE_GERMAN_FILTER = True
-
-LAST_DAYS = 2
 RESULTS_WANTED_DEFAULT = 15
 SCRAPE_LOCATION = "Munich, Germany"
 SCRAPE_DISTANCE_MILES = 31
 SCRAPE_HOURS_OLD = 1
 PROFILE_SCRAPE_INTERVAL_SECONDS = 50 * 60
-# LINKEDIN_JOB_LEVEL_ALLOWED_VALUES = [
-#     "entry level",
-#     "mid-senior level",
-#     "not applicable",
-# ]
-
-INPUT_DIR = "input"
-OUTPUT_DIR = "output"
-TEMP_DIR = os.path.join(OUTPUT_DIR, "temp")
-
-LINKEDIN_INPUT_FILE = os.path.join(TEMP_DIR, "linkedin_raw.csv")
-LINKEDIN_FILTERED_FILE = os.path.join(OUTPUT_DIR, "linkedin_filtered.csv")
-
-STEPSTONE_CLEANED_RECENT_TEMP_FILE = "stepstone_cleaned_recent.csv"
-STEPSTONE_APPLY_RECENT_TEMP_FILE = "stepstone_apply_recent.csv"
-
-XING_INPUT_FILE = os.path.join(INPUT_DIR, "xing.csv")
-XING_CLEANED_RECENT_TEMP_FILE = "xing_cleaned_recent.csv"
-XING_APPLY_RECENT_TEMP_FILE = "xing_apply_recents.csv"
-
-GLASSDOOR_INPUT_FILE = os.path.join(INPUT_DIR, "glassdoor.csv")
-GLASSDOOR_CLEANED_RECENT_TEMP_FILE = "glassdoor_cleaned_recent.csv"
-GLASSDOOR_APPLY_RECENT_TEMP_FILE = "glassdoor_apply_recent.csv"
-
-GERMAN_FILTER_REQUEST_DELAY = 0.2
-
-STEPSTONE_INPUT_FILE = os.path.join(INPUT_DIR, "stepstone.csv")
-STEPSTONE_GERMAN_FILTER_RECENT_TEMP_FILE = STEPSTONE_APPLY_RECENT_TEMP_FILE
-STEPSTONE_FINAL_RECENT_OUTPUT_TEMPLATE = "stepstone_recent_{days}days_{date}.csv"
-GLASSDOOR_FINAL_RECENT_OUTPUT_TEMPLATE = "glassdoor_recent_{days}days_{date}.csv"
-XING_FINAL_RECENT_OUTPUT_TEMPLATE = "xing_recent_{days}days_{date}.csv"
-
-STEPSTONE_TITLE_KEYWORDS = [
-    "Softwareentwickler",
-    "Developer",
-    "Engineer",
-    "Entwickler",
-]
-STEPSTONE_URL_KEYWORDS = [
-    r"stepstone\.de/stellenangebote--",
-    r"stepstone\.de/stellenangebote",
-    r"-inline\.html",
-]
-STEPSTONE_DATE_KEYWORDS = [r"vor\s+\d+"]
-STEPSTONE_MATCH_KEYWORDS = ["Passt"]
-
-GLASSDOOR_TITLE_KEYWORDS = [
-    r"m/w/d",
-    r"all gender",
-    r"\b(?:engineer|developer|scientist|architect|manager|specialist|consultant|analyst|devops|data|application|software|process|test|quality|security|sales|product)\b",
-]
-GLASSDOOR_URL_KEYWORDS = [r"/job-listing/"]
-GLASSDOOR_DATE_KEYWORDS = [r"^\d+(?:Std|T)$"]
-
-XING_TITLE_COLUMN_KEYWORDS = ["headline"]
-XING_URL_KEYWORDS = [r"(?:www\.)?xing\.com/jobs/|/jobs/"]
-XING_DATE_KEYWORDS = [
-    r"^(?:\d+\s+(?:hour|hours|day|days|week|weeks|month|months|year|years)\s+ago|yesterday|just now|today)$",
-]
 
 LINKEDIN_OUTPUT_COLUMNS = [
     "id",
@@ -117,85 +46,8 @@ INDEED_AFTER_FILTER_COLUMNS = [
     "job_url",
     "job_board",
 ]
-# Canonical job_board values used in outputs
 JOB_BOARD_INDEED = "Indeed"
 JOB_BOARD_LINKEDIN = "Linkedin"
-
-DEUTSCH_VALUE = "Deutsch"
-
-STEPSTONE_REMOVE_EXACT_VALUE = DEUTSCH_VALUE
-
-SITE_PIPELINE_CONFIGS = {
-    "stepstone": {
-        "enabled": PROCESS_STEPSTONE,
-        "input_file": STEPSTONE_INPUT_FILE,
-        "recent_temp_output_file": STEPSTONE_CLEANED_RECENT_TEMP_FILE,
-        "title_column_name_keywords": [],
-        "title_content_keywords": STEPSTONE_TITLE_KEYWORDS,
-        "title_exclude_url": True,
-        "url_content_keywords": STEPSTONE_URL_KEYWORDS,
-        "date_content_keywords": STEPSTONE_DATE_KEYWORDS,
-        "extra_columns": [
-            {
-                "name": "match",
-                "content_keywords": STEPSTONE_MATCH_KEYWORDS,
-            }
-        ],
-        "drop_exact_value_rows": [STEPSTONE_REMOVE_EXACT_VALUE],
-        "date_parser": "stepstone",
-        "use_german_filter": STEPSTONE_USE_GERMAN_FILTER,
-        "german_filter_temp_output_file": STEPSTONE_GERMAN_FILTER_RECENT_TEMP_FILE,
-        "final_output_template": STEPSTONE_FINAL_RECENT_OUTPUT_TEMPLATE,
-        "sort_columns": ["match", "_date_age_days"],
-        "output_column_order": ["match", "date", "position", "job_url"],
-        "categorical_columns": [
-            {
-                "name": "match",
-                "exclude_value": "Passt weniger",
-                "replacements": {"Passt hervorragend": "per", "Passt gut": "gut"},
-                "categories": ["per", "gut"],
-            }
-        ],
-    },
-    "glassdoor": {
-        "enabled": PROCESS_GLASSDOOR,
-        "input_file": GLASSDOOR_INPUT_FILE,
-        "recent_temp_output_file": GLASSDOOR_CLEANED_RECENT_TEMP_FILE,
-        "title_column_name_keywords": [],
-        "title_content_keywords": GLASSDOOR_TITLE_KEYWORDS,
-        "title_exclude_url": True,
-        "url_content_keywords": GLASSDOOR_URL_KEYWORDS,
-        "date_content_keywords": GLASSDOOR_DATE_KEYWORDS,
-        "extra_columns": [],
-        "drop_exact_value_rows": [],
-        "date_parser": "glassdoor",
-        "use_german_filter": GLASSDOOR_USE_GERMAN_FILTER,
-        "german_filter_temp_output_file": None,
-        "final_output_template": GLASSDOOR_FINAL_RECENT_OUTPUT_TEMPLATE,
-        "sort_columns": ["_date_age_days"],
-        "output_column_order": ["date", "position", "job_url"],
-        "categorical_columns": [],
-    },
-    "xing": {
-        "enabled": PROCESS_XING,
-        "input_file": XING_INPUT_FILE,
-        "recent_temp_output_file": XING_CLEANED_RECENT_TEMP_FILE,
-        "title_column_name_keywords": XING_TITLE_COLUMN_KEYWORDS,
-        "title_content_keywords": [],
-        "title_exclude_url": True,
-        "url_content_keywords": XING_URL_KEYWORDS,
-        "date_content_keywords": XING_DATE_KEYWORDS,
-        "extra_columns": [],
-        "drop_exact_value_rows": [],
-        "date_parser": "xing",
-        "use_german_filter": XING_USE_GERMAN_FILTER,
-        "german_filter_temp_output_file": XING_APPLY_RECENT_TEMP_FILE,
-        "final_output_template": XING_FINAL_RECENT_OUTPUT_TEMPLATE,
-        "sort_columns": ["_date_age_days", "position"],
-        "output_column_order": ["date", "position", "job_url"],
-        "categorical_columns": [],
-    },
-}
 
 GERMAN_REQUIRED_PATTERNS = [
     r"\b(?:c1|c2)[- ]?(?:niveau|level)?[- ]?(?:deutsch|german)\b",

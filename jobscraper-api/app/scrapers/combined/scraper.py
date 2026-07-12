@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 import pandas as pd
 
@@ -9,21 +8,11 @@ from ...constants import (
     SCRAPE_HOURS_OLD,
     SCRAPE_LOCATION,
 )
-from ...user_profiles import UserProfile
-
+from ...utils.search_terms import normalize_search_terms
 logger = logging.getLogger(__name__)
 
 
-def normalize_search_terms(search_terms: List[str]) -> list[str]:
-    normalized = []
-    for term in search_terms:
-        term_text = str(term).strip()
-        if term_text and term_text not in normalized:
-            normalized.append(term_text)
-    return normalized
-
-
-def scrape_linkedin_terms(search_terms: List[str]) -> pd.DataFrame:
+def scrape_linkedin_terms(search_terms: list[str]) -> pd.DataFrame:
     try:
         from jobspy import scrape_jobs
     except Exception:
@@ -48,7 +37,7 @@ def scrape_linkedin_terms(search_terms: List[str]) -> pd.DataFrame:
                 verbose=0,
             )
             if df is not None and not df.empty:
-                df["_search_term"] = term  # optional: track which term produced the row
+                df["_search_term"] = term
                 frames.append(df)
         except Exception:
             logger.exception("Failed scraping term %r", term)
@@ -57,7 +46,6 @@ def scrape_linkedin_terms(search_terms: List[str]) -> pd.DataFrame:
         return pd.DataFrame()
 
     combined = pd.concat(frames, ignore_index=True)
-    # Deduplicate by job_url if available, keeping first occurrence
     if "job_url" in combined.columns:
         combined = combined.drop_duplicates(subset=["job_url"], keep="first")
 

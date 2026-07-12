@@ -6,6 +6,7 @@ from typing import Optional
 
 from ...constants import PROFILE_SCRAPE_INTERVAL_SECONDS
 from ...user_profiles import UserProfileStore
+from ...utils.search_terms import normalize_search_terms
 from .scraper import scrape_linkedin_terms
 from .storage import JobsPostgresStore
 
@@ -78,20 +79,9 @@ class ProfileScrapeScheduler:
                 continue
 
     def _collect_unique_terms(self) -> list[str]:
-        unique_terms: list[str] = []
-        seen: set[str] = set()
-
-        for _, profile in self.profile_store.list_profiles():
-            for term in profile.search_terms:
-                normalized = str(term).strip()
-                if not normalized:
-                    continue
-
-                term_key = normalized.casefold()
-                if term_key in seen:
-                    continue
-
-                seen.add(term_key)
-                unique_terms.append(normalized)
-
-        return unique_terms
+        search_terms = [
+            term
+            for _, profile in self.profile_store.list_profiles()
+            for term in profile.search_terms
+        ]
+        return normalize_search_terms(search_terms)

@@ -1,5 +1,5 @@
 import re
-import pandas as pd
+
 from app.constants import GERMAN_REQUIRED_PATTERNS
 
 GERMAN_REGEX = re.compile("|".join(GERMAN_REQUIRED_PATTERNS), flags=re.IGNORECASE)
