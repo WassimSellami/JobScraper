@@ -93,20 +93,17 @@ def filter_linkedin(
     df = _apply_search_term_filter(df, profile)
     df = _apply_common_exclusions(df, profile)
 
-    recognized_job_levels = {"entry level", "mid-senior level"}
     allowed_job_levels = {
         str(value).strip().casefold()
         for value in profile.job_levels
-        if str(value).strip().casefold() in recognized_job_levels
+        if str(value).strip()
     }
+    allowed_job_levels.add("not applicable")
     if "job_level" in df.columns:
         normalized_job_levels = (
             df["job_level"].fillna("").astype(str).str.strip().str.casefold()
         )
-        df = df[
-            normalized_job_levels.isin(allowed_job_levels)
-            | ~normalized_job_levels.isin(recognized_job_levels)
-        ].copy()
+        df = df[normalized_job_levels.isin(allowed_job_levels)].copy()
 
     if "job_type" in df.columns:
         df = df[df["job_type"].fillna("").astype(str).str.lower() == "fulltime"].copy()
