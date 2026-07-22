@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import json
 import re
 
 import pandas as pd
-from psycopg.types.json import Jsonb
 
 from ...database import get_pool
 
@@ -18,7 +16,6 @@ def initialize_jobs_database() -> None:
                 external_id TEXT,
                 job_url TEXT NOT NULL UNIQUE,
                 site TEXT,
-                job_url_direct TEXT,
                 title TEXT,
                 company TEXT,
                 location TEXT,
@@ -29,7 +26,6 @@ def initialize_jobs_database() -> None:
                 company_industry TEXT,
                 search_term TEXT,
                 search_terms TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-                payload JSONB NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             )
@@ -46,6 +42,13 @@ def initialize_jobs_database() -> None:
         )
         connection.execute(
             """
+            ALTER TABLE jobs
+            DROP COLUMN IF EXISTS job_url_direct,
+            DROP COLUMN IF EXISTS payload
+            """
+        )
+        connection.execute(
+            """
             CREATE INDEX IF NOT EXISTS jobs_site_created_at_idx
             ON jobs (LOWER(site), created_at DESC)
             """
@@ -56,7 +59,23 @@ class JobsPostgresStore:
     def read(
         self, site: str | None = None, last_hours: int | None = None
     ) -> pd.DataFrame:
-        query = "SELECT payload, search_terms FROM jobs"
+        query = """
+            SELECT
+                external_id AS id,
+                job_url,
+                site,
+                title,
+                company,
+                location,
+                date_posted,
+                job_type,
+                description,
+                job_level,
+                company_industry,
+                search_term AS _search_term,
+                search_terms AS _search_terms
+            FROM jobs
+        """
         conditions: list[str] = []
         parameters: list = []
         if site:
@@ -77,14 +96,7 @@ class JobsPostgresStore:
         with get_pool().connection() as connection:
             rows = connection.execute(query, tuple(parameters)).fetchall()
 
-        records = []
-        for row in rows:
-            record = dict(row["payload"])
-            stored_terms = row["search_terms"] or []
-            if stored_terms:
-                record["_search_terms"] = stored_terms
-            records.append(record)
-        return pd.DataFrame(records)
+        return pd.DataFrame([dict(row) for row in rows])
 
     def upsert(self, new_rows: pd.DataFrame) -> int:
         if new_rows is None or new_rows.empty:
@@ -106,15 +118,14 @@ class JobsPostgresStore:
                 connection.cursor().executemany(
                     """
                     INSERT INTO jobs (
-                        external_id, job_url, site, job_url_direct, title, company,
+                        external_id, job_url, site, title, company,
                         location, date_posted, job_type, description, job_level,
-                        company_industry, search_term, search_terms, payload
+                        company_industry, search_term, search_terms
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (job_url) DO UPDATE SET
                         external_id = EXCLUDED.external_id,
                         site = EXCLUDED.site,
-                        job_url_direct = EXCLUDED.job_url_direct,
                         title = EXCLUDED.title,
                         company = EXCLUDED.company,
                         location = EXCLUDED.location,
@@ -125,7 +136,6 @@ class JobsPostgresStore:
                         company_industry = EXCLUDED.company_industry,
                         search_term = EXCLUDED.search_term,
                         search_terms = EXCLUDED.search_terms,
-                        payload = EXCLUDED.payload,
                         updated_at = NOW()
                     """,
                     values,
@@ -139,7 +149,6 @@ class JobsPostgresStore:
             record.get("id"),
             record["job_url"],
             record.get("site"),
-            record.get("job_url_direct"),
             record.get("title"),
             record.get("company"),
             record.get("location"),
@@ -150,7 +159,6 @@ class JobsPostgresStore:
             record.get("company_industry"),
             record.get("_search_term"),
             record.get("_search_terms", []),
-            Jsonb(record),
         )
 
     @staticmethod
