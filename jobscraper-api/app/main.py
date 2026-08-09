@@ -13,6 +13,7 @@ from .config import (
     LOG_LEVEL,
 )
 from .database import close_database, initialize_database
+from .scrapers.combined import router as combined_router
 from .scrapers.combined.background import ProfileScrapeScheduler
 from .scrapers.combined.storage import initialize_jobs_database
 from .user_profiles_router import router as user_profiles_router
@@ -58,6 +59,7 @@ else:
     logger.warning("CORS is disabled because no CORS_ORIGINS were configured")
 
 app.include_router(autocomplete_router.router, prefix="/api/autocomplete")
+app.include_router(combined_router.router, prefix="/api/jobs")
 app.include_router(user_profiles_router, prefix="/api/user-profiles")
 
 @app.get("/health")
