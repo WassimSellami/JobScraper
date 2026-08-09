@@ -11,6 +11,7 @@ SEARCH_TERMS = [
 ]
 
 LINKEDIN_JOB_LEVEL_ALLOWED_VALUES = [
+    "internship",
     "entry level",
     "mid-senior level",
     "not applicable",

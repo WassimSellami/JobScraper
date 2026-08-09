@@ -37,9 +37,10 @@ def initialize_database() -> None:
             """
             CREATE TABLE IF NOT EXISTS user_profiles (
                 profile_id TEXT PRIMARY KEY,
+                profile_name TEXT,
                 search_terms TEXT[] NOT NULL DEFAULT ARRAY['software engineer']::TEXT[],
                 job_levels TEXT[] NOT NULL DEFAULT ARRAY[
-                    'entry level', 'mid-senior level', 'not applicable'
+                    'internship', 'entry level', 'mid-senior level', 'not applicable'
                 ]::TEXT[],
                 excluded_companies TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
                 excluded_positions TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
@@ -53,6 +54,19 @@ def initialize_database() -> None:
             """
             ALTER TABLE user_profiles
             ADD COLUMN IF NOT EXISTS last_hours INTEGER NOT NULL DEFAULT 1
+            """
+        )
+        connection.execute(
+            """
+            ALTER TABLE user_profiles
+            ADD COLUMN IF NOT EXISTS profile_name TEXT
+            """
+        )
+        connection.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS user_profiles_profile_name_unique
+            ON user_profiles (LOWER(profile_name))
+            WHERE profile_name IS NOT NULL
             """
         )
         connection.execute(

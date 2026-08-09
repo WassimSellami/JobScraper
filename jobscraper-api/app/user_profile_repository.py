@@ -16,7 +16,8 @@ class UserProfileStore:
         with get_pool().connection() as connection:
             rows = connection.execute(
                 """
-                SELECT profile_id, search_terms, job_levels, excluded_companies,
+                SELECT profile_id, COALESCE(profile_name, profile_id) AS profile_name,
+                       search_terms, job_levels, excluded_companies,
                        excluded_positions, allow_deutsch, last_hours
                 FROM user_profiles
                 ORDER BY profile_id
@@ -28,7 +29,8 @@ class UserProfileStore:
         with get_pool().connection() as connection:
             row = connection.execute(
                 """
-                SELECT search_terms, job_levels, excluded_companies,
+                SELECT COALESCE(profile_name, profile_id) AS profile_name,
+                       search_terms, job_levels, excluded_companies,
                        excluded_positions, allow_deutsch, last_hours
                 FROM user_profiles
                 WHERE profile_id = %s
@@ -38,15 +40,21 @@ class UserProfileStore:
         return self._profile_from_row(row) if row else None
 
     def save_profile(self, profile_id: str, profile: UserProfile) -> UserProfile:
+        normalized_profile_id = self._normalize_profile_id(profile_id)
+        normalized_profile_name = self._normalize_profile_name(profile.profile_name)
         values = self._profile_values(profile)
         with get_pool().connection() as connection:
+            self._ensure_profile_name_available(
+                connection, normalized_profile_name, normalized_profile_id
+            )
             connection.execute(
                 """
                 INSERT INTO user_profiles (
-                    profile_id, search_terms, job_levels, excluded_companies,
+                    profile_id, profile_name, search_terms, job_levels, excluded_companies,
                     excluded_positions, allow_deutsch, last_hours
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (profile_id) DO UPDATE SET
+                    profile_name = EXCLUDED.profile_name,
                     search_terms = EXCLUDED.search_terms,
                     job_levels = EXCLUDED.job_levels,
                     excluded_companies = EXCLUDED.excluded_companies,
@@ -55,24 +63,52 @@ class UserProfileStore:
                     last_hours = EXCLUDED.last_hours,
                     updated_at = NOW()
                 """,
-                (self._normalize_profile_id(profile_id), *values),
+                (
+                    normalized_profile_id,
+                    normalized_profile_name,
+                    *values,
+                ),
             )
         return profile
 
     def create_profile(self, profile: UserProfile) -> str:
         profile_id = uuid4().hex
+        profile.profile_name = profile.profile_name or profile_id
+        normalized_profile_name = self._normalize_profile_name(profile.profile_name)
         values = self._profile_values(profile)
         with get_pool().connection() as connection:
+            self._ensure_profile_name_available(connection, normalized_profile_name)
             connection.execute(
                 """
                 INSERT INTO user_profiles (
-                    profile_id, search_terms, job_levels, excluded_companies,
+                    profile_id, profile_name, search_terms, job_levels, excluded_companies,
                     excluded_positions, allow_deutsch, last_hours
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                (profile_id, *values),
+                (
+                    profile_id,
+                    normalized_profile_name,
+                    *values,
+                ),
             )
         return profile_id
+
+    def rename_profile(self, profile_id: str, profile_name: str) -> str | None:
+        normalized_profile_id = self._normalize_profile_id(profile_id)
+        normalized_profile_name = self._normalize_profile_name(profile_name)
+        with get_pool().connection() as connection:
+            self._ensure_profile_name_available(
+                connection, normalized_profile_name, normalized_profile_id
+            )
+            result = connection.execute(
+                """
+                UPDATE user_profiles
+                SET profile_name = %s, updated_at = NOW()
+                WHERE profile_id = %s
+                """,
+                (normalized_profile_name, normalized_profile_id),
+            )
+        return normalized_profile_name if result.rowcount else None
 
     def delete_profile(self, profile_id: str) -> bool:
         with get_pool().connection() as connection:
@@ -88,6 +124,29 @@ class UserProfileStore:
         if not normalized_profile_id:
             raise ValueError("profile_id must not be empty")
         return normalized_profile_id
+
+    @staticmethod
+    def _normalize_profile_name(profile_name: str) -> str:
+        normalized_profile_name = str(profile_name).strip()
+        if not normalized_profile_name:
+            raise ValueError("profile_name must not be empty")
+        return normalized_profile_name
+
+    @staticmethod
+    def _ensure_profile_name_available(
+        connection, profile_name: str, current_profile_id: str | None = None
+    ) -> None:
+        row = connection.execute(
+            """
+            SELECT 1
+            FROM user_profiles
+            WHERE LOWER(profile_name) = LOWER(%s)
+              AND (%s IS NULL OR profile_id <> %s)
+            """,
+            (profile_name, current_profile_id, current_profile_id),
+        ).fetchone()
+        if row:
+            raise ValueError("profile_name is already in use")
 
     @staticmethod
     def _profile_values(
@@ -106,6 +165,7 @@ class UserProfileStore:
     def _profile_from_row(row: dict) -> UserProfile:
         return UserProfile.model_validate(
             {
+                "profile_name": row["profile_name"],
                 "search_terms": row["search_terms"],
                 "job_levels": row["job_levels"],
                 "excluded_companies": row["excluded_companies"],

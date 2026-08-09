@@ -97,9 +97,13 @@ def filter_linkedin_jobs(input_file: str, output_file: str):
     ].copy()
     log(f"After job_level inclusion filter: {len(df_filtered)} jobs")
 
-    # Filter 3: job_type equals "fulltime"
-    df_filtered = df_filtered[df_filtered["job_type"] == "fulltime"].copy()
-    log(f"After job_type filter (fulltime): {len(df_filtered)} jobs")
+    # Filter 3: Keep full-time, part-time, and internship roles.
+    df_filtered = df_filtered[
+        df_filtered["job_type"].fillna("").str.lower().isin(
+            {"fulltime", "parttime", "internship"}
+        )
+    ].copy()
+    log(f"After job_type filter (fulltime, parttime, or internship): {len(df_filtered)} jobs")
 
     # Filter 4: Remove jobs with German language requirement
     log("Checking German language requirements...")
@@ -123,8 +127,9 @@ def filter_linkedin_jobs(input_file: str, output_file: str):
 
     df_output = df_filtered[LINKEDIN_AFTER_FILTER_COLUMNS].reset_index(drop=True)
     job_level_order = {
-        "entry level": 0,
-        "mid-senior level": 1,
+        "internship": 0,
+        "entry level": 1,
+        "mid-senior level": 2,
     }
     df_output["_job_level_order"] = (
         df_output["job_level"].fillna("").str.lower().map(job_level_order).fillna(99)

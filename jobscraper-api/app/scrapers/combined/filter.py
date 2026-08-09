@@ -102,7 +102,13 @@ def filter_linkedin(
         df = df[normalized_job_levels.isin(allowed_job_levels)].copy()
 
     if "job_type" in df.columns:
-        df = df[df["job_type"].fillna("").astype(str).str.lower() == "fulltime"].copy()
+        df = df[
+            df["job_type"]
+            .fillna("")
+            .astype(str)
+            .map(str.lower)
+            .isin({"fulltime", "parttime", "internship"})
+        ].copy()
 
     df["job_board"] = JOB_BOARD_LINKEDIN
     df = _apply_german_filter(df, profile)
@@ -112,7 +118,7 @@ def filter_linkedin(
         df[column_name] = pd.NA
 
     df_output = df[LINKEDIN_AFTER_FILTER_COLUMNS].reset_index(drop=True)
-    job_level_order = {"entry level": 0, "mid-senior level": 1}
+    job_level_order = {"internship": 0, "entry level": 1, "mid-senior level": 2}
     df_output["_job_level_order"] = (
         df_output["job_level"].fillna("").str.lower().map(job_level_order).fillna(99)
     )

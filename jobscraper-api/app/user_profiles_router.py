@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, status
 
-from .schemas import UserProfile, UserProfileRecord
+from .schemas import ProfileRenameRequest, UserProfile, UserProfileRecord
 from .user_profile_repository import UserProfileStore
 
 router = APIRouter()
@@ -68,6 +68,8 @@ def update_profile(profile_id: str, payload: UserProfile) -> UserProfileRecord:
         raise _database_error("get", exc) from exc
     if existing_profile is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+    if payload.profile_name is None:
+        payload.profile_name = existing_profile.profile_name
 
     try:
         saved_profile = store.save_profile(profile_id, payload)
@@ -77,6 +79,33 @@ def update_profile(profile_id: str, payload: UserProfile) -> UserProfileRecord:
         raise _database_error("update", exc) from exc
     logger.info("Updated profile %s", profile_id)
     return _to_record(profile_id, saved_profile)
+
+
+@router.patch("/{profile_id}/name", response_model=UserProfileRecord)
+def rename_profile(
+    profile_id: str, payload: ProfileRenameRequest
+) -> UserProfileRecord:
+    try:
+        profile = store.get_profile(profile_id)
+    except ValueError as exc:
+        raise _bad_profile_id(exc) from exc
+    except Exception as exc:
+        raise _database_error("get", exc) from exc
+    if profile is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+
+    try:
+        renamed_profile_name = store.rename_profile(profile_id, payload.profile_name)
+    except ValueError as exc:
+        raise _bad_profile_id(exc) from exc
+    except Exception as exc:
+        raise _database_error("rename", exc) from exc
+    if renamed_profile_name is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+
+    profile.profile_name = renamed_profile_name
+    logger.info("Renamed profile %s", profile_id)
+    return _to_record(profile_id, profile)
 
 
 @router.delete("/{profile_id}")
