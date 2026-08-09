@@ -106,18 +106,3 @@ def rename_profile(
     profile.profile_name = renamed_profile_name
     logger.info("Renamed profile %s", profile_id)
     return _to_record(profile_id, profile)
-
-
-@router.delete("/{profile_id}")
-def delete_profile(profile_id: str) -> dict[str, str]:
-    try:
-        deleted = store.delete_profile(profile_id)
-    except ValueError as exc:
-        raise _bad_profile_id(exc) from exc
-    except Exception as exc:
-        raise _database_error("delete", exc) from exc
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
-
-    logger.info("Deleted profile %s", profile_id)
-    return {"status": "deleted", "profile_id": profile_id}
