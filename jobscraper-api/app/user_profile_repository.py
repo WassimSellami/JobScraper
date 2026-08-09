@@ -136,14 +136,20 @@ class UserProfileStore:
     def _ensure_profile_name_available(
         connection, profile_name: str, current_profile_id: str | None = None
     ) -> None:
-        row = connection.execute(
-            """
+        query = """
             SELECT 1
             FROM user_profiles
             WHERE LOWER(profile_name) = LOWER(%s)
-              AND (%s IS NULL OR profile_id <> %s)
-            """,
-            (profile_name, current_profile_id, current_profile_id),
+        """
+        parameters: tuple[str, ...] = (profile_name,)
+
+        if current_profile_id is not None:
+            query += " AND profile_id <> %s"
+            parameters += (current_profile_id,)
+
+        row = connection.execute(
+            query,
+            parameters,
         ).fetchone()
         if row:
             raise ValueError("profile_name is already in use")
