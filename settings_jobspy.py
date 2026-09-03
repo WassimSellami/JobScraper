@@ -17,7 +17,7 @@ LINKEDIN_JOB_LEVEL_ALLOWED_VALUES = [
     "not applicable",
 ]
 
-LOCATION = "Munich, Germany"
+LOCATION = "Germany"
 DISTANCE_MILES = 31
 HOURS_OLD = 24
 RESULTS_WANTED = 50

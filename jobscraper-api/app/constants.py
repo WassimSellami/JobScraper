@@ -1,5 +1,5 @@
 RESULTS_WANTED_DEFAULT = 30
-SCRAPE_LOCATION = "Munich, Germany"
+SCRAPE_LOCATION = "Germany"
 SCRAPE_DISTANCE_MILES = 31
 SCRAPE_HOURS_OLD = 1
 PROFILE_SCRAPE_INTERVAL_SECONDS = 60 * 60
@@ -22,6 +22,7 @@ LINKEDIN_AFTER_FILTER_COLUMNS = [
     "title",
     "date_posted",
     "company",
+    "location",
     "company_industry",
     "job_url",
     "job_board",
@@ -42,6 +43,7 @@ INDEED_AFTER_FILTER_COLUMNS = [
     "title",
     "date_posted",
     "company",
+    "location",
     "company_industry",
     "job_url",
     "job_board",
